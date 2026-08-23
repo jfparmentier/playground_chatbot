@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+
+	<title>LLM de démonstration</title>
+
+	<!-- Basic Page Needs
+	–––––––––––––––––––––––––––––––––––––––––––––––––– -->
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta name="author" content="JF Parmentier">
+
+	<!-- Mobile Specific Metas
+	––––––––––––––––––––––––––––––––––––––––––––––––––  -->
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<!-- FONT
+	––––––––––––––––––––––––––––––––––––––––––––––––––  -->
+	<!-- <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet"> -->
+	<!-- <link href="https://fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css"> -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" referrerpolicy="no-referrer" />
+
+	<!-- CSS
+	–––––––––––––––––––––––––––––––––––––––––––––––––– -->
+	<link rel="stylesheet" href="css/normalize.css">
+	<link rel="stylesheet" href="css/skeleton.css">
+	<link rel="stylesheet" href="css/extensionBoutons.css?v=8">
+	
+	<!-- Javascript
+	–––––––––––––––––––––––––––––––––––––––––––––––––– -->
+	<script src="scripts/vue.js"></script>	
+	<script src="scripts/gestionPage.js?v=2"></script>
+	<script src="scripts/generationId.js"></script>
+	<script src="scripts/vuePremiereConnexion.js?v=2"></script>
+	<script src="scripts/gestionLLM.js?v=12"></script>
+	<script src="scripts/appelsPHP.js"></script>
+
+</head>
+
+<body onload="initialisePage()">
+
+	<!-- Primary Page Layout
+	–––––––––––––––––––––––––––––––––––––––––––––––––– -->
+	<div class="container" id="conteneur">
+
+		<!-- Entête -->
+		<!-- <div class="vue-fixe" style="margin-top: 1%;">
+		</div> -->
+
+		<div class="vue-exclusive" id="vue_premiere_connexion" style="display: none; margin-top: 3%;" default>
+			<h5>Accès restreint.</h5>
+			<label for="input_email_utilisateur">Entrez votre e-mail :</label>
+			<input class="u-full-width" type="text" placeholder="prenom.nom@domaine.fr" id="input_email_utilisateur">
+			<div class="vue" id="message_erreur_email" style="display: none;" hide>
+				<p><em id="contenu_message_erreur_email">e-mail non valide</em></p>
+			</div>
+			<div class="vue" id="message_erreur_utilisateur_non_valide" style="display: none;" hide>
+				<p><em id="contenu_message_erreur_utilisateur_non_valide">Utilisateur inconnu ou non autorisé.</em></p>
+			</div>
+			<button id="bouton_identification" class="button-primary u-full-width" onclick="verifieIdentifiant();">S'identifier</button>
+		</div>
+
+		<main class="vue-exclusive" id="pagePrompt">
+			<header class="page-prompt-header">
+				<div>
+					<h5>Conversation avec un LLM</h5>
+				</div>
+
+				<details class="model-settings">
+					<summary title="Paramètres du modèle" aria-label="Afficher les paramètres du modèle">
+						<i class="fas fa-cog" aria-hidden="true"></i>
+					</summary>
+					<div class="model-settings-panel">
+						<label for="model_llm">Modèle de langage</label>
+						<select class="u-full-width" id="model_llm" onchange="changeModeleSelectionne();">
+							<option value="openai_gpt5_nano" selected>GPT-5 nano — OpenAI</option>
+							<option value="together_qwen">Qwen3.5-9B — Together AI</option>
+						</select>
+						<p class="model-capability-hint" id="model_capability_hint">Les probabilités de tokens ne sont pas disponibles pour ce modèle.</p>
+					</div>
+				</details>
+			</header>
+
+			<section class="system-prompt-card" aria-labelledby="system_prompt_label">
+				<div class="field-heading">
+					<label for="system_prompt" id="system_prompt_label">Prompt système</label>
+				</div>
+				<textarea class="u-full-width" rows="3" maxlength="8000" id="system_prompt" placeholder="Ex. Tu es un assistant concis qui explique ses réponses simplement."></textarea>
+			</section>
+
+			<section class="conversation-panel" aria-labelledby="conversation_title">
+				<div class="conversation-heading">
+					<h6 id="conversation_title">Conversation</h6>
+					<span class="message-counter" id="message_counter" aria-live="polite">0 / 3 messages</span>
+				</div>
+
+				<div class="conversation-messages" id="conversation_messages" aria-live="polite" aria-label="Messages de la conversation">
+					<div class="conversation-empty">
+						<i class="far fa-comments" aria-hidden="true"></i>
+						<p><strong>La conversation est vide.</strong></p>
+						<p>Écrivez votre premier message ci-dessous.</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="vue" id="probabilités" style="display: none;" hide>
+				<div class="token-unavailable-notice" id="token_unavailable_notice" role="status" hidden>
+					<i class="fas fa-info-circle" aria-hidden="true"></i>
+					<span id="token_unavailable_message"></span>
+				</div>
+				<div class="vue-exclusive" id="vue_btn_affich_proba" default>
+					<button type="button" class="token-inspector-toggle" onclick="afficheVue('vue_proba');">
+						<i class="fas fa-project-diagram" aria-hidden="true"></i>
+						Afficher les tokens de la dernière réponse
+					</button>
+				</div>
+				<div class="vue-exclusive" id="vue_proba" style="display: none;" affiche="redessineArbreProbabilites">
+					<div class="token-inspector-heading">
+						<div>
+							<h6>Arbre de génération des tokens</h6>
+							<p class="token-tree-explanation">Chaque colonne représente une position dans la réponse. Le token choisi est mis en évidence.</p>
+						</div>
+						<button type="button" class="token-inspector-close" aria-label="Cacher l’arbre des probabilités" onclick="afficheVue('vue_btn_affich_proba');">
+							<i class="fas fa-times" aria-hidden="true"></i>
+						</button>
+					</div>
+					<div class="token-inspector-toolbar">
+						<p id="token_inspector_count">0 token</p>
+						<nav class="token-page-navigation" aria-label="Pages de tokens">
+							<button type="button" id="token_page_previous" aria-label="Afficher les tokens précédents" onclick="changePageTokens(-1);" disabled>
+								<i class="fas fa-chevron-left" aria-hidden="true"></i>
+							</button>
+							<span id="token_page_status" aria-live="polite">0 sur 0</span>
+							<button type="button" id="token_page_next" aria-label="Afficher les tokens suivants" onclick="changePageTokens(1);" disabled>
+								<i class="fas fa-chevron-right" aria-hidden="true"></i>
+							</button>
+						</nav>
+					</div>
+					<div id="output_arbre_tokens"></div>
+				</div>
+			</section>
+
+			<div class="chat-bottom-dock" id="chat_bottom_dock">
+				<p class="chat-error" id="chat_error" role="alert" tabindex="-1" hidden></p>
+				<p class="conversation-limit-notice" id="conversation_limit_notice" hidden>Vous avez utilisé les trois messages disponibles pour cette conversation.</p>
+
+				<div class="conversation-actions" aria-label="Actions de la conversation">
+					<button type="button" class="button-success conversation-action-button" id="regenerate_response_button" onclick="regenererDerniereReponse();" disabled>
+						<i class="fas fa-sync-alt" aria-hidden="true"></i>
+						Régénérer la réponse
+					</button>
+					<button type="button" class="conversation-action-button restart-conversation-button" id="restart_conversation_button" onclick="recommencerConversation();" disabled>
+						<i class="fas fa-undo-alt" aria-hidden="true"></i>
+						Tout effacer
+					</button>
+				</div>
+
+				<form class="chat-composer" id="chat_form" onsubmit="envoyerMessage(event);">
+					<label for="user_message">Votre message</label>
+					<textarea class="u-full-width" rows="3" maxlength="16000" id="user_message" aria-describedby="composer_hint conversation_limit_notice" placeholder="Écrivez votre message…" oninput="actualiseInterfaceConversation();" onkeydown="gereRaccourciEnvoi(event);"></textarea>
+					<div class="composer-footer">
+						<span class="composer-hint" id="composer_hint">Ctrl&nbsp;↵ ou ⌘&nbsp;↵ pour envoyer</span>
+						<button type="submit" class="button-primary send-button" id="send_message_button" aria-label="Envoyer le message au modèle" disabled>
+							<span id="send_button_label">Envoyer</span>
+							<i class="fas fa-arrow-up" id="send_button_icon" aria-hidden="true"></i>
+						</button>
+					</div>
+				</form>
+			</div>
+			<p class="screen-reader-only" id="chat_status" role="status" aria-live="polite"></p>
+		</main>
+
+		<!-- Pied de page -->		
+		<div class="vue-fixe">
+			<!-- <hr>
+			<p><em>Modèle : Qwen/Qwen3.5-9B via Together AI</em></p> -->
+		</div>
+
+	</div>
+
+</body>
+
+</html>
