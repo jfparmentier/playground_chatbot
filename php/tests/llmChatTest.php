@@ -41,6 +41,14 @@ expect(
     'Qwen doit signaler la disponibilité des logprobs.'
 );
 
+$defaultRequest = normaliseChatRequest([
+    'messages' => [['role' => 'user', 'content' => 'Bonjour']],
+]);
+expect(
+    $defaultRequest['modelChoice'] === MODEL_CHOICE_TOGETHER_QWEN,
+    'Qwen doit être le modèle sélectionné par défaut.'
+);
+
 $legacyRequest = normaliseChatRequest([
     'modele' => MODEL_CHOICE_OPENAI_GPT5_NANO,
     'prompt' => 'Bonjour',

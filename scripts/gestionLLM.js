@@ -1,11 +1,10 @@
 var NOMBRE_TOKENS_A_AFFICHER = 5;
-var TOKENS_PAR_PAGE = 10;
+var NOMBRE_POSITIONS_TOKENS_A_AFFICHER = 10;
 var MAX_MESSAGES_UTILISATEUR = 3;
 var messagesConversation = [];
 var generationEnCours = false;
 var interfaceConversationInitialisee = false;
 var derniersLogprobs = null;
-var pageTokensCourante = 0;
 var messageIndisponibiliteTokens = "";
 
 function initialiseChatInterface() {
@@ -15,6 +14,7 @@ function initialiseChatInterface() {
 
     interfaceConversationInitialisee = true;
     initialiseChatBottomDock();
+    ajusteHauteurChampMessage();
     changeModeleSelectionne();
     afficheConversation();
     actualiseInterfaceConversation();
@@ -52,16 +52,6 @@ function getNombreMessagesUtilisateur() {
     }).length;
 }
 
-function getLibelleModeleSelectionne() {
-    var modelSelect = document.getElementById("model_llm");
-
-    if (!modelSelect || modelSelect.selectedIndex < 0) {
-        return "Assistant";
-    }
-
-    return modelSelect.options[modelSelect.selectedIndex].text;
-}
-
 function effaceInspecteurTokens() {
     var probabilityView = document.getElementById("probabilités");
     var output = document.getElementById("output_arbre_tokens");
@@ -80,7 +70,6 @@ function effaceInspecteurTokens() {
     }
 
     derniersLogprobs = null;
-    pageTokensCourante = 0;
     messageIndisponibiliteTokens = "";
 }
 
@@ -508,8 +497,8 @@ function renderProbabilityTree(logprobs) {
 
     var tokenCount = getProbabilityTreeTokenCount(logprobs);
     var levels = [];
-    var firstTokenIndex = pageTokensCourante * TOKENS_PAR_PAGE;
-    var lastTokenIndex = Math.min(tokenCount, firstTokenIndex + TOKENS_PAR_PAGE);
+    var firstTokenIndex = 0;
+    var lastTokenIndex = Math.min(tokenCount, NOMBRE_POSITIONS_TOKENS_A_AFFICHER);
 
     for (var tokenIndex = firstTokenIndex; tokenIndex < lastTokenIndex; tokenIndex++) {
         var candidates = selectDisplayedCandidates(logprobs, tokenIndex);
@@ -653,18 +642,30 @@ function formatMessageContent(content) {
     return escapeHtml(content);
 }
 
-function construitMessageHtml(message) {
+function construitMessageHtml(message, index) {
     var isUser = message.role === "user";
     var classes = "chat-message " + (isUser ? "is-user" : "is-assistant");
     var icon = isUser ? "fas fa-user" : "fas fa-robot";
-    var label = isUser ? "Vous" : (message.modelLabel || "Assistant");
+    var regenerateAction = !isUser && index === messagesConversation.length - 1
+        ? ''
+            + '    <div class="chat-message-actions">'
+            + '      <button type="button" id="regenerate_response_button"'
+            + '        aria-label="Régénérer la dernière réponse"'
+            + '        title="Régénérer la dernière réponse"'
+            + '        onclick="regenererDerniereReponse();">'
+            + '        <i class="fas fa-sync-alt" aria-hidden="true"></i>'
+            + '      </button>'
+            + '    </div>'
+        : "";
 
     return ''
-        + '<article class="' + classes + '">'
+        + '<article class="' + classes + '" aria-label="'
+        + (isUser ? "Message de l’utilisateur" : "Réponse du modèle")
+        + '">'
         + '  <div class="chat-avatar" aria-hidden="true"><i class="' + icon + '"></i></div>'
         + '  <div class="chat-message-body">'
-        + '    <p class="chat-message-meta">' + escapeHtml(label) + '</p>'
         + '    <div class="chat-bubble">' + formatMessageContent(message.content) + '</div>'
+        + regenerateAction
         + '  </div>'
         + '</article>';
 }
@@ -674,7 +675,6 @@ function construitAttenteHtml() {
         + '<article class="chat-message is-assistant is-waiting" aria-label="Le modèle génère une réponse">'
         + '  <div class="chat-avatar" aria-hidden="true"><i class="fas fa-robot"></i></div>'
         + '  <div class="chat-message-body">'
-        + '    <p class="chat-message-meta">' + escapeHtml(getLibelleModeleSelectionne()) + '</p>'
         + '    <div class="chat-bubble">'
         + '      <span class="typing-dot"></span>'
         + '      <span class="typing-dot"></span>'
@@ -725,7 +725,6 @@ function actualiseInterfaceConversation() {
     var systemPrompt = document.getElementById("system_prompt");
     var modelSelect = document.getElementById("model_llm");
     var regenerateButton = document.getElementById("regenerate_response_button");
-    var restartButton = document.getElementById("restart_conversation_button");
     var userMessageCount = getNombreMessagesUtilisateur();
     var limitReached = userMessageCount >= MAX_MESSAGES_UTILISATEUR;
     var hasText = input && input.value.trim() !== "";
@@ -801,9 +800,6 @@ function actualiseInterfaceConversation() {
         regenerateButton.disabled = generationEnCours || !canRegenerate;
     }
 
-    if (restartButton) {
-        restartButton.disabled = generationEnCours || !hasMessages;
-    }
 }
 
 function gereRaccourciEnvoi(event) {
@@ -817,6 +813,25 @@ function gereRaccourciEnvoi(event) {
     if (form) {
         form.requestSubmit();
     }
+}
+
+function ajusteHauteurChampMessage() {
+    var input = document.getElementById("user_message");
+
+    if (!input) {
+        return;
+    }
+
+    input.style.height = "auto";
+    var targetHeight = Math.min(input.scrollHeight || 40, 180);
+    input.style.height = targetHeight + "px";
+    input.style.overflowY = (input.scrollHeight || 0) > 180 ? "auto" : "hidden";
+    actualiseHauteurChatBottomDock();
+}
+
+function gereSaisieMessage() {
+    ajusteHauteurChampMessage();
+    actualiseInterfaceConversation();
 }
 
 function afficheErreurConversation(message) {
@@ -851,40 +866,15 @@ function messagesPourApi() {
 
 function actualiseNavigationTokens() {
     var tokenCount = derniersLogprobs ? getProbabilityTreeTokenCount(derniersLogprobs) : 0;
-    var firstToken = tokenCount === 0 ? 0 : pageTokensCourante * TOKENS_PAR_PAGE + 1;
-    var lastToken = Math.min(tokenCount, (pageTokensCourante + 1) * TOKENS_PAR_PAGE);
+    var displayedCount = Math.min(tokenCount, NOMBRE_POSITIONS_TOKENS_A_AFFICHER);
     var count = document.getElementById("token_inspector_count");
-    var status = document.getElementById("token_page_status");
-    var previous = document.getElementById("token_page_previous");
-    var next = document.getElementById("token_page_next");
 
     if (count) {
-        count.textContent = tokenCount + (tokenCount === 1 ? " token généré" : " tokens générés");
+        count.textContent = tokenCount + (tokenCount === 1 ? " token généré" : " tokens générés")
+            + (tokenCount > displayedCount
+                ? " · " + displayedCount + " premiers affichés"
+                : "");
     }
-
-    if (status) {
-        status.textContent = firstToken + "–" + lastToken + " sur " + tokenCount;
-    }
-
-    if (previous) {
-        previous.disabled = pageTokensCourante === 0;
-    }
-
-    if (next) {
-        next.disabled = lastToken >= tokenCount;
-    }
-}
-
-function changePageTokens(delta) {
-    if (!derniersLogprobs) {
-        return;
-    }
-
-    var tokenCount = getProbabilityTreeTokenCount(derniersLogprobs);
-    var lastPage = Math.max(0, Math.ceil(tokenCount / TOKENS_PAR_PAGE) - 1);
-    pageTokensCourante = Math.max(0, Math.min(lastPage, pageTokensCourante + delta));
-    renderProbabilityTree(derniersLogprobs);
-    actualiseNavigationTokens();
 }
 
 function afficheIndisponibiliteTokens(message) {
@@ -895,7 +885,6 @@ function afficheIndisponibiliteTokens(message) {
     var expandedView = document.getElementById("vue_proba");
 
     derniersLogprobs = null;
-    pageTokensCourante = 0;
     messageIndisponibiliteTokens = message;
 
     if (probabilityView) {
@@ -926,7 +915,6 @@ function afficheInspecteurTokens(logprobs) {
     }
 
     derniersLogprobs = logprobs;
-    pageTokensCourante = 0;
     messageIndisponibiliteTokens = "";
     var unavailableNotice = document.getElementById("token_unavailable_notice");
     if (unavailableNotice) {
@@ -967,6 +955,7 @@ function restaureGenerationApresErreur(contexte, messageErreur) {
         var input = document.getElementById("user_message");
         if (input) {
             input.value = contexte.messageUtilisateur;
+            ajusteHauteurChampMessage();
         }
     } else if (contexte.reponsePrecedente) {
         messagesConversation.push(contexte.reponsePrecedente);
@@ -997,8 +986,7 @@ function lanceGeneration(contexte) {
     var input = document.getElementById("user_message");
     var modelSelect = document.getElementById("model_llm");
     var systemPrompt = document.getElementById("system_prompt");
-    var modele = modelSelect ? modelSelect.value : "openai_gpt5_nano";
-    var modelLabel = getLibelleModeleSelectionne();
+    var modele = modelSelect ? modelSelect.value : "together_qwen";
     var paramsPhp = {
         model: modele,
         systemPrompt: systemPrompt ? systemPrompt.value : "",
@@ -1032,8 +1020,7 @@ function lanceGeneration(contexte) {
 
                 messagesConversation.push({
                     role: "assistant",
-                    content: assistantContent,
-                    modelLabel: modelLabel
+                    content: assistantContent
                 });
                 generationEnCours = false;
 
@@ -1103,6 +1090,7 @@ function envoyerMessage(event) {
 
     if (input) {
         input.value = "";
+        ajusteHauteurChampMessage();
     }
 
     afficheConversation();
@@ -1151,6 +1139,7 @@ function recommencerConversation() {
     var input = document.getElementById("user_message");
     if (input) {
         input.value = "";
+        ajusteHauteurChampMessage();
     }
 
     afficheConversation();

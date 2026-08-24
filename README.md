@@ -9,7 +9,7 @@ Le menu de paramètres, accessible par l’icône en forme d’engrenage en haut
 - **GPT-5 nano**, développé et appelé par OpenAI ;
 - **Qwen3.5-9B**, développé par Alibaba Cloud et appelé par Together AI.
 
-GPT-5 nano est sélectionné par défaut.
+Qwen3.5-9B est sélectionné par défaut.
 
 ## Configuration
 
@@ -44,15 +44,14 @@ La passerelle accepte un `systemPrompt`, un identifiant `model` ou `modele`, et 
 
 L’interface transmet le prompt système et l’historique complet à chaque appel. L’ancien champ `prompt` reste accepté par la passerelle pour les anciennes intégrations à un tour. Qwen3.5-9B fournit les `logprobs` attendues. Les API OpenAI refusent actuellement les `logprobs` pour `gpt-5-nano`, qui reste utilisable sans cet affichage. L’interface l’indique sans traiter cette absence comme une erreur.
 
-Les messages suivent l’ordre chronologique dans la zone de conversation. Les actions et le champ de saisie restent fixés au bas de la fenêtre ; la page réserve automatiquement leur hauteur afin qu’ils ne masquent pas la conversation.
+Les messages suivent l’ordre chronologique dans une colonne principale de 900 px, également utilisée par le prompt système et le champ de saisie. Le champ arrondi reste fixé au bas de la fenêtre et grandit avec son contenu ; la page réserve automatiquement sa hauteur afin qu’il ne masque pas la conversation. L’inspecteur de tokens occupe une colonne supplémentaire de 300 px à droite sur les écrans suffisamment larges.
 
-L’inspecteur correspond toujours à la dernière réponse du modèle. Pour éviter un arbre démesuré lorsque la réponse est longue, les positions sont présentées par pages de dix tokens ; toutes les pages restent accessibles avec les flèches précédente et suivante.
+L’inspecteur correspond toujours à la dernière réponse du modèle et présente uniquement ses dix premières positions de tokens, sans navigation vers les suivantes.
 
 ## Actions de conversation
 
 - **Poursuivre** ajoute un nouveau message utilisateur, dans la limite de trois ;
-- **Régénérer la réponse** supprime uniquement la dernière réponse du modèle et rejoue le même historique, sans consommer de message utilisateur supplémentaire ;
-- **Tout effacer** efface immédiatement les messages, mais conserve le modèle sélectionné et le prompt système.
+- L’icône **Régénérer** placée sous la dernière réponse supprime uniquement cette réponse et rejoue le même historique, sans consommer de message utilisateur supplémentaire.
 
 Si une régénération échoue, l’ancienne réponse et son affichage de tokens sont restaurés.
 

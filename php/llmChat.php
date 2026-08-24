@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 const MODEL_CHOICE_OPENAI_GPT5_NANO = 'openai_gpt5_nano';
 const MODEL_CHOICE_TOGETHER_QWEN = 'together_qwen';
-const DEFAULT_MODEL_CHOICE = MODEL_CHOICE_OPENAI_GPT5_NANO;
+const DEFAULT_MODEL_CHOICE = MODEL_CHOICE_TOGETHER_QWEN;
 const OPENAI_CHAT_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 const TOGETHER_CHAT_ENDPOINT = 'https://api.together.ai/v1/chat/completions';
 const MAX_USER_MESSAGES = 3;
