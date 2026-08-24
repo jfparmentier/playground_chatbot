@@ -1088,3 +1088,82 @@ summary:focus-visible {
     transform: none;
   }
 }
+
+/* Probabilités intégrées aux dix premiers tokens de la dernière réponse */
+.container {
+  max-width: 900px;
+}
+
+.chat-workspace {
+  grid-template-columns: minmax(0, 900px);
+}
+
+.chat-bottom-dock {
+  left: 50%;
+  width: min(calc(100vw - 40px), 900px);
+  transform: translateX(-50%);
+}
+
+@media (min-width: 1260px) {
+  .chat-bottom-dock {
+    left: 50%;
+    width: min(calc(100vw - 40px), 900px);
+    transform: translateX(-50%);
+  }
+}
+
+.assistant-token-probability {
+  position: relative;
+  border-radius: 2px;
+  cursor: help;
+}
+
+.assistant-token-probability:hover,
+.assistant-token-probability:focus-visible {
+  background: #e5f1f8;
+  outline: none;
+}
+
+.assistant-token-probability::before,
+.assistant-token-probability::after {
+  position: absolute;
+  bottom: calc(100% + 0.7rem);
+  left: 50%;
+  z-index: 40;
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 0.3rem);
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s ease;
+}
+
+.assistant-token-probability::after {
+  content: attr(data-probability);
+  width: max-content;
+  max-width: 22rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 5px;
+  background: #273947;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(39, 57, 71, 0.2);
+}
+
+.assistant-token-probability::before {
+  content: "";
+  bottom: calc(100% + 0.25rem);
+  border: 0.45rem solid transparent;
+  border-top-color: #273947;
+}
+
+.assistant-token-probability:hover::before,
+.assistant-token-probability:hover::after,
+.assistant-token-probability:focus-visible::before,
+.assistant-token-probability:focus-visible::after {
+  visibility: visible;
+  opacity: 1;
+  transform: translate(-50%, 0);
+}

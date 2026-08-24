@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 
-	<title>LLM de démonstration</title>
+	<title>Chatbot de démonstration</title>
 
 	<!-- Basic Page Needs
 	–––––––––––––––––––––––––––––––––––––––––––––––––– -->
@@ -23,7 +23,7 @@
 	–––––––––––––––––––––––––––––––––––––––––––––––––– -->
 	<link rel="stylesheet" href="css/normalize.css">
 	<link rel="stylesheet" href="css/skeleton.css">
-	<link rel="stylesheet" href="css/extensionBoutons.css?v=10">
+	<link rel="stylesheet" href="css/extensionBoutons.css?v=11">
 	
 	<!-- Javascript
 	–––––––––––––––––––––––––––––––––––––––––––––––––– -->
@@ -31,7 +31,7 @@
 	<script src="scripts/gestionPage.js?v=2"></script>
 	<script src="scripts/generationId.js"></script>
 	<script src="scripts/vuePremiereConnexion.js?v=2"></script>
-	<script src="scripts/gestionLLM.js?v=14"></script>
+	<script src="scripts/gestionLLM.js?v=15"></script>
 	<script src="scripts/appelsPHP.js"></script>
 
 </head>
@@ -64,7 +64,7 @@
 				<div class="chat-main-column">
 					<header class="page-prompt-header">
 						<div>
-							<h5>LLM en mode chatbot</h5>
+							<h5>Chatbot de démonstration</h5>
 						</div>
 
 						<details class="model-settings">
@@ -77,7 +77,7 @@
 									<option value="openai_gpt5_nano">GPT-5 nano — OpenAI</option>
 									<option value="together_qwen" selected>Qwen3.5-9B — Together AI</option>
 								</select>
-								<p class="model-capability-hint" id="model_capability_hint">Les probabilités des cinq tokens les plus probables seront disponibles.</p>
+								<p class="model-capability-hint" id="model_capability_hint">Survolez l’un des dix premiers tokens de la dernière réponse pour afficher sa probabilité.</p>
 							</div>
 						</details>
 					</header>
@@ -104,36 +104,6 @@
 						</div>
 					</section>
 				</div>
-
-				<aside class="token-inspector-column" aria-label="Analyse des tokens de la dernière réponse">
-					<section class="vue" id="probabilités" style="display: none;" hide>
-						<div class="token-unavailable-notice" id="token_unavailable_notice" role="status" hidden>
-							<i class="fas fa-info-circle" aria-hidden="true"></i>
-							<span id="token_unavailable_message"></span>
-						</div>
-						<div class="vue-exclusive" id="vue_btn_affich_proba" default>
-							<button type="button" class="token-inspector-toggle" onclick="afficheVue('vue_proba');">
-								<i class="fas fa-project-diagram" aria-hidden="true"></i>
-								Afficher les tokens de la dernière réponse
-							</button>
-						</div>
-						<div class="vue-exclusive" id="vue_proba" style="display: none;" affiche="redessineArbreProbabilites">
-							<div class="token-inspector-heading">
-								<div>
-									<h6>Arbre de génération des tokens</h6>
-									<p class="token-tree-explanation">Chaque colonne représente une position dans la réponse. Le token choisi est mis en évidence.</p>
-								</div>
-								<button type="button" class="token-inspector-close" aria-label="Cacher l’arbre des probabilités" onclick="afficheVue('vue_btn_affich_proba');">
-									<i class="fas fa-times" aria-hidden="true"></i>
-								</button>
-							</div>
-							<div class="token-inspector-toolbar">
-								<p id="token_inspector_count">0 token</p>
-							</div>
-							<div id="output_arbre_tokens"></div>
-						</div>
-					</section>
-				</aside>
 			</div>
 
 			<div class="chat-bottom-dock" id="chat_bottom_dock">

@@ -63,13 +63,6 @@ const elements = {
     model_capability_hint: createElement(),
     chat_error: createElement({ hidden: true }),
     chat_status: createElement(),
-    probabilités: createElement({ className: "vue" }),
-    vue_btn_affich_proba: createElement({ className: "vue-exclusive" }),
-    vue_proba: createElement({ className: "vue-exclusive" }),
-    token_unavailable_notice: createElement({ hidden: true }),
-    token_unavailable_message: createElement(),
-    token_inspector_count: createElement(),
-    output_arbre_tokens: createElement(),
     chat_form: createElement()
 };
 
@@ -141,7 +134,12 @@ context.appel_php_async = function (_file, _params, success) {
     success(JSON.stringify({
         choices: [{
             message: { content: "Nouvelle réponse" },
-            logprobs: null
+            logprobs: {
+                content: [
+                    { token: "Nouvelle", logprob: -0.1, top_logprobs: [] },
+                    { token: " réponse", logprob: -0.2, top_logprobs: [] }
+                ]
+            }
         }]
     }));
 };
@@ -150,8 +148,8 @@ assert.equal(context.messagesConversation.length, 2);
 assert.equal(context.messagesConversation[0].content, "Question");
 assert.equal(context.messagesConversation[1].content, "Nouvelle réponse");
 assert.equal(context.getNombreMessagesUtilisateur(), 1);
-assert.equal(elements.token_unavailable_notice.hidden, false);
-assert.match(elements.token_unavailable_message.textContent, /n’a pas renvoyé/);
+assert.match(elements.conversation_messages.innerHTML, /assistant-token-probability/);
+assert.match(elements.conversation_messages.innerHTML, /Probabilité : 90,5%/);
 assert.equal(elements.chat_status.textContent, "La réponse a été régénérée.");
 
 context.appel_php_async = function (_file, _params, _success, error) {
@@ -192,20 +190,20 @@ elements.user_message.scrollHeight = 120;
 context.gereSaisieMessage();
 assert.equal(elements.user_message.style.height, "120px");
 
-const syntheticLogprobs = {
-    tokens: Array.from({ length: 23 }, (_value, index) => `t${index + 1}`),
-    tokenLogprobs: Array.from({ length: 23 }, () => -0.1),
-    tokenBytes: Array.from({ length: 23 }, () => null),
-    topLogprobs: Array.from({ length: 23 }, (_value, index) => [{
-        token: `t${index + 1}`,
-        logprob: -0.1,
-        bytes: null
-    }])
+const tokenizedMessage = {
+    role: "assistant",
+    content: "abcdefghijkl",
+    logprobs: {
+        tokens: Array.from("abcdefghijkl"),
+        tokenLogprobs: Array.from({ length: 12 }, () => -0.1),
+        tokenBytes: Array.from({ length: 12 }, () => null),
+        topLogprobs: Array.from({ length: 12 }, () => [])
+    }
 };
-
-context.afficheInspecteurTokens(syntheticLogprobs);
-assert.equal(elements.token_inspector_count.textContent, "23 tokens générés · 10 premiers affichés");
-assert.match(elements.output_arbre_tokens.innerHTML, /Token 10/);
-assert.doesNotMatch(elements.output_arbre_tokens.innerHTML, /Token 11/);
+context.messagesConversation = [tokenizedMessage];
+context.afficheConversation();
+const tooltipCount = (elements.conversation_messages.innerHTML.match(/class="assistant-token-probability"/g) || []).length;
+assert.equal(tooltipCount, 10);
+assert.match(elements.conversation_messages.innerHTML, /<\/span>kl/);
 
 console.log("OK - gestionConversation.test");

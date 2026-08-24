@@ -1,11 +1,8 @@
-var NOMBRE_TOKENS_A_AFFICHER = 5;
 var NOMBRE_POSITIONS_TOKENS_A_AFFICHER = 10;
 var MAX_MESSAGES_UTILISATEUR = 3;
 var messagesConversation = [];
 var generationEnCours = false;
 var interfaceConversationInitialisee = false;
-var derniersLogprobs = null;
-var messageIndisponibiliteTokens = "";
 
 function initialiseChatInterface() {
     if (interfaceConversationInitialisee) {
@@ -52,38 +49,16 @@ function getNombreMessagesUtilisateur() {
     }).length;
 }
 
-function effaceInspecteurTokens() {
-    var probabilityView = document.getElementById("probabilités");
-    var output = document.getElementById("output_arbre_tokens");
-    var unavailableNotice = document.getElementById("token_unavailable_notice");
-
-    if (probabilityView) {
-        probabilityView.style.display = "none";
-    }
-
-    if (output) {
-        output.innerHTML = "";
-    }
-
-    if (unavailableNotice) {
-        unavailableNotice.hidden = true;
-    }
-
-    derniersLogprobs = null;
-    messageIndisponibiliteTokens = "";
-}
-
 function changeModeleSelectionne() {
     var modelSelect = document.getElementById("model_llm");
     var capabilityHint = document.getElementById("model_capability_hint");
     var supportsLogprobs = modelSelect && modelSelect.value === "together_qwen";
 
-    effaceInspecteurTokens();
     cacheErreurConversation();
 
     if (capabilityHint) {
         capabilityHint.textContent = supportsLogprobs
-            ? "Les probabilités des cinq tokens les plus probables seront disponibles."
+            ? "Survolez l’un des dix premiers tokens de la dernière réponse pour afficher sa probabilité."
             : "Les probabilités de tokens ne sont pas disponibles pour ce modèle.";
     }
 }
@@ -95,17 +70,6 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-}
-
-function formatToken(token) {
-    if (token === "") {
-        return "<em>token vide</em>";
-    }
-
-    return escapeHtml(token)
-        .replace(/ /g, "&nbsp;")
-        .replace(/\n/g, "↵<br>")
-        .replace(/\t/g, "→&nbsp;&nbsp;");
 }
 
 function logprobToPercent(logprob) {
@@ -638,14 +602,51 @@ function scheduleProbabilityTreeRedraw() {
 
 window.addEventListener("resize", scheduleProbabilityTreeRedraw);
 
-function formatMessageContent(content) {
-    return escapeHtml(content);
+function formatMessageContent(content, logprobs) {
+    if (
+        !logprobs
+        || !Array.isArray(logprobs.tokens)
+        || !Array.isArray(logprobs.tokenLogprobs)
+    ) {
+        return escapeHtml(content);
+    }
+
+    var tokens = logprobs.tokens.slice(0, NOMBRE_POSITIONS_TOKENS_A_AFFICHER);
+    var generatedPrefix = tokens.join("");
+
+    // Le balisage n'est appliqué que si les tokens reconstruisent exactement
+    // le début du texte visible, afin de ne jamais altérer la réponse.
+    if (tokens.length === 0 || content.indexOf(generatedPrefix) !== 0) {
+        return escapeHtml(content);
+    }
+
+    var tokenHtml = tokens.map(function (token, index) {
+        var probability = formatProbability(logprobs.tokenLogprobs[index]);
+
+        if (!probability) {
+            return escapeHtml(token);
+        }
+
+        var tooltip = "Probabilité : " + probability;
+
+        return ''
+            + '<span class="assistant-token-probability" tabindex="0"'
+            + ' data-probability="' + escapeHtml(tooltip) + '"'
+            + ' aria-label="' + escapeHtml("Token « " + token + " ». " + tooltip) + '">'
+            + escapeHtml(token)
+            + '</span>';
+    }).join("");
+
+    return tokenHtml + escapeHtml(content.slice(generatedPrefix.length));
 }
 
 function construitMessageHtml(message, index) {
     var isUser = message.role === "user";
     var classes = "chat-message " + (isUser ? "is-user" : "is-assistant");
     var icon = isUser ? "fas fa-user" : "fas fa-robot";
+    var displaysTokenProbabilities = !isUser
+        && index === messagesConversation.length - 1
+        && message.logprobs;
     var regenerateAction = !isUser && index === messagesConversation.length - 1
         ? ''
             + '    <div class="chat-message-actions">'
@@ -664,7 +665,9 @@ function construitMessageHtml(message, index) {
         + '">'
         + '  <div class="chat-avatar" aria-hidden="true"><i class="' + icon + '"></i></div>'
         + '  <div class="chat-message-body">'
-        + '    <div class="chat-bubble">' + formatMessageContent(message.content) + '</div>'
+        + '    <div class="chat-bubble">'
+        + formatMessageContent(message.content, displaysTokenProbabilities ? message.logprobs : null)
+        + '</div>'
         + regenerateAction
         + '  </div>'
         + '</article>';
@@ -864,83 +867,6 @@ function messagesPourApi() {
     });
 }
 
-function actualiseNavigationTokens() {
-    var tokenCount = derniersLogprobs ? getProbabilityTreeTokenCount(derniersLogprobs) : 0;
-    var displayedCount = Math.min(tokenCount, NOMBRE_POSITIONS_TOKENS_A_AFFICHER);
-    var count = document.getElementById("token_inspector_count");
-
-    if (count) {
-        count.textContent = tokenCount + (tokenCount === 1 ? " token généré" : " tokens générés")
-            + (tokenCount > displayedCount
-                ? " · " + displayedCount + " premiers affichés"
-                : "");
-    }
-}
-
-function afficheIndisponibiliteTokens(message) {
-    var probabilityView = document.getElementById("probabilités");
-    var unavailableNotice = document.getElementById("token_unavailable_notice");
-    var unavailableMessage = document.getElementById("token_unavailable_message");
-    var collapsedView = document.getElementById("vue_btn_affich_proba");
-    var expandedView = document.getElementById("vue_proba");
-
-    derniersLogprobs = null;
-    messageIndisponibiliteTokens = message;
-
-    if (probabilityView) {
-        probabilityView.style.display = "block";
-    }
-
-    if (unavailableNotice) {
-        unavailableNotice.hidden = false;
-    }
-
-    if (unavailableMessage) {
-        unavailableMessage.textContent = message;
-    }
-
-    if (collapsedView) {
-        collapsedView.style.display = "none";
-    }
-
-    if (expandedView) {
-        expandedView.style.display = "none";
-    }
-}
-
-function afficheInspecteurTokens(logprobs) {
-    if (!logprobs || getProbabilityTreeTokenCount(logprobs) === 0) {
-        effaceInspecteurTokens();
-        return;
-    }
-
-    derniersLogprobs = logprobs;
-    messageIndisponibiliteTokens = "";
-    var unavailableNotice = document.getElementById("token_unavailable_notice");
-    if (unavailableNotice) {
-        unavailableNotice.hidden = true;
-    }
-    renderProbabilityTree(logprobs);
-    actualiseNavigationTokens();
-    afficheVue("probabilités");
-    afficheVue("vue_btn_affich_proba");
-}
-
-function afficheTokensDerniereReponse(choice) {
-    var logprobs = normaliseLogprobs(choice);
-
-    if (logprobs && getProbabilityTreeTokenCount(logprobs) > 0) {
-        afficheInspecteurTokens(logprobs);
-        return;
-    }
-
-    var modelSelect = document.getElementById("model_llm");
-    var message = modelSelect && modelSelect.value === "openai_gpt5_nano"
-        ? "Les probabilités de tokens ne sont pas prises en charge par GPT-5 nano. La réponse reste disponible normalement."
-        : "Le fournisseur n’a pas renvoyé de probabilités pour cette réponse.";
-    afficheIndisponibiliteTokens(message);
-}
-
 function restaureGenerationApresErreur(contexte, messageErreur) {
     generationEnCours = false;
 
@@ -964,19 +890,12 @@ function restaureGenerationApresErreur(contexte, messageErreur) {
     afficheConversation();
     actualiseInterfaceConversation();
     afficheErreurConversation(messageErreur);
-
-    if (contexte.logprobsPrecedents) {
-        afficheInspecteurTokens(contexte.logprobsPrecedents);
-    } else if (contexte.messageIndisponibiliteTokensPrecedent) {
-        afficheIndisponibiliteTokens(contexte.messageIndisponibiliteTokensPrecedent);
-    }
 }
 
 function reinitialiseApresPerteDeSession() {
     localStorage.removeItem("user_uuid");
     messagesConversation = [];
     generationEnCours = false;
-    effaceInspecteurTokens();
     afficheConversation();
     actualiseInterfaceConversation();
     initialisePage();
@@ -1018,15 +937,20 @@ function lanceGeneration(contexte) {
                     throw new Error("Le modèle n’a généré aucun texte.");
                 }
 
+                var normalizedLogprobs = normaliseLogprobs(choice);
+                var hasTokenProbabilities = normalizedLogprobs
+                    && Array.isArray(normalizedLogprobs.tokens)
+                    && normalizedLogprobs.tokens.length > 0;
+
                 messagesConversation.push({
                     role: "assistant",
-                    content: assistantContent
+                    content: assistantContent,
+                    logprobs: hasTokenProbabilities ? normalizedLogprobs : null
                 });
                 generationEnCours = false;
 
                 afficheConversation();
                 actualiseInterfaceConversation();
-                afficheTokensDerniereReponse(choice);
                 annonceStatutConversation(
                     contexte.type === "regeneration"
                         ? "La réponse a été régénérée."
@@ -1074,13 +998,10 @@ function envoyerMessage(event) {
 
     var contexte = {
         type: "nouveau_message",
-        messageUtilisateur: messageUtilisateur,
-        logprobsPrecedents: derniersLogprobs,
-        messageIndisponibiliteTokensPrecedent: messageIndisponibiliteTokens
+        messageUtilisateur: messageUtilisateur
     };
 
     cacheErreurConversation();
-    effaceInspecteurTokens();
     messagesConversation.push({
         role: "user",
         content: messageUtilisateur
@@ -1111,14 +1032,11 @@ function regenererDerniereReponse() {
 
     var contexte = {
         type: "regeneration",
-        reponsePrecedente: derniereReponse,
-        logprobsPrecedents: derniersLogprobs,
-        messageIndisponibiliteTokensPrecedent: messageIndisponibiliteTokens
+        reponsePrecedente: derniereReponse
     };
 
     cacheErreurConversation();
     messagesConversation.pop();
-    effaceInspecteurTokens();
     generationEnCours = true;
     annonceStatutConversation("Régénération de la réponse en cours.");
     afficheConversation();
@@ -1134,7 +1052,6 @@ function recommencerConversation() {
     messagesConversation = [];
     generationEnCours = false;
     cacheErreurConversation();
-    effaceInspecteurTokens();
 
     var input = document.getElementById("user_message");
     if (input) {
