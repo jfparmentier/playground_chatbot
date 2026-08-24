@@ -46,7 +46,7 @@ L’interface transmet le prompt système et l’historique complet à chaque ap
 
 Les messages suivent l’ordre chronologique dans une colonne principale de 900 px, également utilisée par le prompt système et le champ de saisie. Le champ arrondi reste fixé au bas de la fenêtre et grandit avec son contenu ; la page réserve automatiquement sa hauteur afin qu’il ne masque pas la conversation.
 
-Lorsque le modèle fournit les `logprobs`, les dix premiers tokens de sa dernière réponse affichent leur probabilité dans une info-bulle au survol ou au focus clavier. Aucun arbre séparé n’est affiché.
+Lorsque le modèle fournit les `logprobs`, tous les tokens de sa dernière réponse affichent leur probabilité dans une info-bulle au survol ou au focus clavier. Aucun arbre séparé n’est affiché.
 
 ## Actions de conversation
 

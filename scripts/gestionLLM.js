@@ -1,4 +1,3 @@
-var NOMBRE_POSITIONS_TOKENS_A_AFFICHER = 10;
 var MAX_MESSAGES_UTILISATEUR = 3;
 var messagesConversation = [];
 var generationEnCours = false;
@@ -58,7 +57,7 @@ function changeModeleSelectionne() {
 
     if (capabilityHint) {
         capabilityHint.textContent = supportsLogprobs
-            ? "Survolez l’un des dix premiers tokens de la dernière réponse pour afficher sa probabilité."
+            ? "Survolez un token de la dernière réponse pour afficher sa probabilité."
             : "Les probabilités de tokens ne sont pas disponibles pour ce modèle.";
     }
 }
@@ -384,7 +383,7 @@ function selectDisplayedCandidates(logprobs, tokenIndex) {
         return Number(b.logprob) - Number(a.logprob);
     });
 
-    var displayed = candidates.slice(0, NOMBRE_TOKENS_A_AFFICHER);
+    var displayed = candidates.slice(0, 5);
 
     // Si le token tiré est hors du top 5, afficher les quatre meilleurs tokens
     // et le token tiré, puis restaurer l'ordre probabiliste.
@@ -395,7 +394,7 @@ function selectDisplayedCandidates(logprobs, tokenIndex) {
             .filter(function (candidate) {
                 return !candidate.chosen;
             })
-            .slice(0, NOMBRE_TOKENS_A_AFFICHER - 1)
+            .slice(0, 4)
             .concat([chosenCandidate])
             .sort(function (a, b) {
                 return Number(b.logprob) - Number(a.logprob);
@@ -462,7 +461,7 @@ function renderProbabilityTree(logprobs) {
     var tokenCount = getProbabilityTreeTokenCount(logprobs);
     var levels = [];
     var firstTokenIndex = 0;
-    var lastTokenIndex = Math.min(tokenCount, NOMBRE_POSITIONS_TOKENS_A_AFFICHER);
+    var lastTokenIndex = tokenCount;
 
     for (var tokenIndex = firstTokenIndex; tokenIndex < lastTokenIndex; tokenIndex++) {
         var candidates = selectDisplayedCandidates(logprobs, tokenIndex);
@@ -505,7 +504,7 @@ function renderProbabilityTree(logprobs) {
             html += renderProbabilityTreeNode(candidate, tokenIndex, candidateIndex);
         });
 
-        if (candidates.length < NOMBRE_TOKENS_A_AFFICHER) {
+        if (candidates.length < 5) {
             html += '<p class="token-tree-warning"><small>'
                 + candidates.length
                 + ' candidat(s) exploitable(s) renvoyé(s) par l’API.</small></p>';
@@ -611,33 +610,47 @@ function formatMessageContent(content, logprobs) {
         return escapeHtml(content);
     }
 
-    var tokens = logprobs.tokens.slice(0, NOMBRE_POSITIONS_TOKENS_A_AFFICHER);
-    var generatedPrefix = tokens.join("");
+    var tokens = logprobs.tokens.slice();
 
-    // Le balisage n'est appliqué que si les tokens reconstruisent exactement
-    // le début du texte visible, afin de ne jamais altérer la réponse.
-    if (tokens.length === 0 || content.indexOf(generatedPrefix) !== 0) {
+    if (tokens.length === 0) {
         return escapeHtml(content);
     }
 
-    var tokenHtml = tokens.map(function (token, index) {
+    var cursor = 0;
+    var tokenHtml = "";
+
+    tokens.some(function (token, index) {
+        if (
+            typeof token !== "string"
+            || token === ""
+            || content.slice(cursor, cursor + token.length) !== token
+        ) {
+            // Les fournisseurs peuvent ajouter un token terminal invisible.
+            // Il ne doit pas annuler les info-bulles déjà construites.
+            return true;
+        }
+
         var probability = formatProbability(logprobs.tokenLogprobs[index]);
 
         if (!probability) {
-            return escapeHtml(token);
+            tokenHtml += escapeHtml(token);
+            cursor += token.length;
+            return false;
         }
 
         var tooltip = "Probabilité : " + probability;
 
-        return ''
+        tokenHtml += ''
             + '<span class="assistant-token-probability" tabindex="0"'
             + ' data-probability="' + escapeHtml(tooltip) + '"'
             + ' aria-label="' + escapeHtml("Token « " + token + " ». " + tooltip) + '">'
             + escapeHtml(token)
             + '</span>';
-    }).join("");
+        cursor += token.length;
+        return false;
+    });
 
-    return tokenHtml + escapeHtml(content.slice(generatedPrefix.length));
+    return tokenHtml + escapeHtml(content.slice(cursor));
 }
 
 function construitMessageHtml(message, index) {

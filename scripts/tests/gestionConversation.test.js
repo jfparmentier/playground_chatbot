@@ -194,16 +194,17 @@ const tokenizedMessage = {
     role: "assistant",
     content: "abcdefghijkl",
     logprobs: {
-        tokens: Array.from("abcdefghijkl"),
-        tokenLogprobs: Array.from({ length: 12 }, () => -0.1),
-        tokenBytes: Array.from({ length: 12 }, () => null),
-        topLogprobs: Array.from({ length: 12 }, () => [])
+        tokens: Array.from("abcdefghijkl").concat(["<|im_end|>"]),
+        tokenLogprobs: Array.from({ length: 13 }, () => -0.1),
+        tokenBytes: Array.from({ length: 13 }, () => null),
+        topLogprobs: Array.from({ length: 13 }, () => [])
     }
 };
 context.messagesConversation = [tokenizedMessage];
 context.afficheConversation();
 const tooltipCount = (elements.conversation_messages.innerHTML.match(/class="assistant-token-probability"/g) || []).length;
-assert.equal(tooltipCount, 10);
-assert.match(elements.conversation_messages.innerHTML, /<\/span>kl/);
+assert.equal(tooltipCount, 12);
+assert.doesNotMatch(elements.conversation_messages.innerHTML, /<\/span>kl/);
+assert.doesNotMatch(elements.conversation_messages.innerHTML, /im_end/);
 
 console.log("OK - gestionConversation.test");
