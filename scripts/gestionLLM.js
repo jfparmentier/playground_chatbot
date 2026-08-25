@@ -968,7 +968,7 @@ function lanceGeneration(contexte) {
     var input = document.getElementById("user_message");
     var modelSelect = document.getElementById("model_llm");
     var systemPrompt = document.getElementById("system_prompt");
-    var modele = modelSelect ? modelSelect.value : "together_qwen";
+    var modele = modelSelect ? modelSelect.value : "together";
     var paramsPhp = {
         model: modele,
         systemPrompt: systemPrompt ? systemPrompt.value : "",

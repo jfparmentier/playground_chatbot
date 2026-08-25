@@ -13,7 +13,7 @@ if (getenv('RUN_LIVE_LLM_TESTS') !== '1') {
 $config = loadLocalConfig();
 $models = [
     MODEL_CHOICE_OPENAI_GPT5_NANO,
-    MODEL_CHOICE_TOGETHER_QWEN,
+    MODEL_CHOICE_TOGETHER,
 ];
 $prompts = [
     'Réponds uniquement par le mot un.',

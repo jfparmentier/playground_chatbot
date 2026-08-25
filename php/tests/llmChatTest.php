@@ -29,7 +29,7 @@ expect(
     'Le modèle OpenAI doit être gpt-5-nano.'
 );
 expect(
-    $catalog[MODEL_CHOICE_TOGETHER_QWEN]['model'] === 'Qwen/Qwen3.5-9B',
+    $catalog[MODEL_CHOICE_TOGETHER]['model'] === 'Qwen/Qwen3.5-9B',
     'Qwen3.5-9B doit rester le modèle Together par défaut.'
 );
 expect(
@@ -37,7 +37,7 @@ expect(
     'gpt-5-nano doit signaler l’absence de logprobs.'
 );
 expect(
-    $catalog[MODEL_CHOICE_TOGETHER_QWEN]['supports_logprobs'] === true,
+    $catalog[MODEL_CHOICE_TOGETHER]['supports_logprobs'] === true,
     'Qwen doit signaler la disponibilité des logprobs.'
 );
 
@@ -61,7 +61,7 @@ $defaultRequest = normaliseChatRequest([
     'messages' => [['role' => 'user', 'content' => 'Bonjour']],
 ]);
 expect(
-    $defaultRequest['modelChoice'] === MODEL_CHOICE_TOGETHER_QWEN,
+    $defaultRequest['modelChoice'] === MODEL_CHOICE_TOGETHER,
     'Qwen doit être le modèle sélectionné par défaut.'
 );
 
@@ -118,7 +118,7 @@ expect(!isset($openAiPayload['max_tokens']), 'Aucun plafond applicatif de sortie
 expect(!isset($openAiPayload['max_completion_tokens']), 'Aucun plafond applicatif de sortie ne doit être envoyé.');
 
 $togetherPayload = buildChatPayload(
-    $catalog[MODEL_CHOICE_TOGETHER_QWEN],
+    $catalog[MODEL_CHOICE_TOGETHER],
     'Réponds brièvement.',
     [['role' => 'user', 'content' => 'Bonjour']]
 );
@@ -128,7 +128,7 @@ expect($togetherPayload['reasoning']['enabled'] === false, 'Le raisonnement Qwen
 expect(!isset($togetherPayload['max_tokens']), 'Aucun plafond applicatif de sortie ne doit être envoyé.');
 
 $qwen38Payload = buildChatPayload(
-    array_merge($catalog[MODEL_CHOICE_TOGETHER_QWEN], $qwen38Profile),
+    array_merge($catalog[MODEL_CHOICE_TOGETHER], $qwen38Profile),
     'Réponds brièvement.',
     [['role' => 'user', 'content' => 'Bonjour']]
 );
@@ -136,7 +136,7 @@ expect($qwen38Payload['logprobs'] === true, 'Qwen 3.8 doit recevoir logprobs=tru
 expect(!isset($qwen38Payload['reasoning']), 'Qwen 3.8 ne doit pas recevoir reasoning.');
 
 $deepseekPayload = buildChatPayload(
-    array_merge($catalog[MODEL_CHOICE_TOGETHER_QWEN], $deepseekProfile),
+    array_merge($catalog[MODEL_CHOICE_TOGETHER], $deepseekProfile),
     'Réponds brièvement.',
     [['role' => 'user', 'content' => 'Bonjour']]
 );

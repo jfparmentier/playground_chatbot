@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 const MODEL_CHOICE_OPENAI_GPT5_NANO = 'openai_gpt5_nano';
-const MODEL_CHOICE_TOGETHER_QWEN = 'together_qwen';
-const DEFAULT_MODEL_CHOICE = MODEL_CHOICE_TOGETHER_QWEN;
+const MODEL_CHOICE_TOGETHER = 'together';
+const DEFAULT_MODEL_CHOICE = MODEL_CHOICE_TOGETHER;
 const TOGETHER_MODEL_QWEN_3_5_9B = 'Qwen/Qwen3.5-9B';
 const TOGETHER_MODEL_QWEN_3_8 = 'Qwen/Qwen3.8-2.4T-A95B';
 const TOGETHER_MODEL_DEEPSEEK_V4_PRO = 'deepseek-ai/DeepSeek-V4-Pro';
@@ -69,7 +69,7 @@ function getChatModelCatalog(): array
             'environment_key' => 'OPENAI_API_KEY',
             'config_key' => 'openai_api_key',
         ],
-        MODEL_CHOICE_TOGETHER_QWEN => [
+        MODEL_CHOICE_TOGETHER => [
             'provider' => 'together',
             'provider_name' => 'Together AI',
             'model' => $togetherProfile['model'],
