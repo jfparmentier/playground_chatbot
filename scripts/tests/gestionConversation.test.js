@@ -224,4 +224,32 @@ assert.equal(tooltipCount, 12);
 assert.doesNotMatch(elements.conversation_messages.innerHTML, /<\/span>kl/);
 assert.doesNotMatch(elements.conversation_messages.innerHTML, /im_end/);
 
+const reasoningChoice = {
+    message: { content: "\n\noui" },
+    logprobs: {
+        content: [
+            { token: "Nous", logprob: -0.1, top_logprobs: [] },
+            { token: " devons raisonner", logprob: -0.2, top_logprobs: [] },
+            { token: "</think>", logprob: -0.3, top_logprobs: [] },
+            { token: "\n\n", logprob: -0.01, top_logprobs: [] },
+            { token: "oui", logprob: -0.02, top_logprobs: [] },
+            { token: "<|im_end|>", logprob: -0.03, top_logprobs: [] }
+        ]
+    }
+};
+const alignedReasoningLogprobs = context.aligneLogprobsAvecContenu(
+    context.normaliseLogprobs(reasoningChoice),
+    reasoningChoice.message.content
+);
+assert.deepEqual(Array.from(alignedReasoningLogprobs.tokens), ["\n\n", "oui"]);
+context.messagesConversation = [{
+    role: "assistant",
+    content: reasoningChoice.message.content,
+    logprobs: alignedReasoningLogprobs
+}];
+context.afficheConversation();
+const alignedTooltipCount = (elements.conversation_messages.innerHTML.match(/class="assistant-token-probability"/g) || []).length;
+assert.equal(alignedTooltipCount, 2);
+assert.doesNotMatch(elements.conversation_messages.innerHTML, /devons raisonner/);
+
 console.log("OK - gestionConversation.test");

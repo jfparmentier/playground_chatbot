@@ -243,6 +243,65 @@ function normaliseLogprobs(choice) {
     };
 }
 
+/**
+ * Certains modèles Together placent les logprobs du raisonnement interne avant
+ * celles de la réponse visible. Retrouve la dernière séquence de tokens qui
+ * reconstitue exactement le contenu affiché et écarte le raisonnement ainsi
+ * que les éventuels tokens terminaux invisibles.
+ */
+function aligneLogprobsAvecContenu(logprobs, content) {
+    if (
+        !logprobs
+        || typeof content !== "string"
+        || content === ""
+        || !Array.isArray(logprobs.tokens)
+        || !Array.isArray(logprobs.tokenLogprobs)
+        || logprobs.tokens.length === 0
+    ) {
+        return logprobs;
+    }
+
+    var joinedTokens = "";
+    var tokenOffsets = [0];
+
+    for (var index = 0; index < logprobs.tokens.length; index++) {
+        if (typeof logprobs.tokens[index] !== "string") {
+            return logprobs;
+        }
+
+        joinedTokens += logprobs.tokens[index];
+        tokenOffsets.push(joinedTokens.length);
+    }
+
+    for (var startIndex = logprobs.tokens.length - 1; startIndex >= 0; startIndex--) {
+        var startOffset = tokenOffsets[startIndex];
+        var endOffset = startOffset + content.length;
+
+        if (joinedTokens.slice(startOffset, endOffset) !== content) {
+            continue;
+        }
+
+        var endIndex = tokenOffsets.indexOf(endOffset, startIndex + 1);
+
+        if (endIndex === -1) {
+            continue;
+        }
+
+        return {
+            tokens: logprobs.tokens.slice(startIndex, endIndex),
+            tokenLogprobs: logprobs.tokenLogprobs.slice(startIndex, endIndex),
+            tokenBytes: Array.isArray(logprobs.tokenBytes)
+                ? logprobs.tokenBytes.slice(startIndex, endIndex)
+                : [],
+            topLogprobs: Array.isArray(logprobs.topLogprobs)
+                ? logprobs.topLogprobs.slice(startIndex, endIndex)
+                : []
+        };
+    }
+
+    return logprobs;
+}
+
 function extractErrorMessage(responseText, status) {
     var apiMessage = "";
 
@@ -1000,7 +1059,10 @@ function lanceGeneration(contexte) {
                     throw new Error("Le modèle n’a généré aucun texte.");
                 }
 
-                var normalizedLogprobs = normaliseLogprobs(choice);
+                var normalizedLogprobs = aligneLogprobsAvecContenu(
+                    normaliseLogprobs(choice),
+                    assistantContent
+                );
                 var hasTokenProbabilities = normalizedLogprobs
                     && Array.isArray(normalizedLogprobs.tokens)
                     && normalizedLogprobs.tokens.length > 0;

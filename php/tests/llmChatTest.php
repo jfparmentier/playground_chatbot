@@ -28,9 +28,14 @@ expect(
     $catalog[MODEL_CHOICE_OPENAI_GPT5_NANO]['model'] === 'gpt-5-nano',
     'Le modèle OpenAI doit être gpt-5-nano.'
 );
+$supportedTogetherModels = [
+    TOGETHER_MODEL_QWEN_3_5_9B,
+    TOGETHER_MODEL_QWEN_3_8,
+    TOGETHER_MODEL_DEEPSEEK_V4_PRO,
+];
 expect(
-    $catalog[MODEL_CHOICE_TOGETHER]['model'] === 'Qwen/Qwen3.5-9B',
-    'Qwen3.5-9B doit rester le modèle Together par défaut.'
+    in_array($catalog[MODEL_CHOICE_TOGETHER]['model'], $supportedTogetherModels, true),
+    'Le modèle Together configuré doit appartenir au registre pris en charge.'
 );
 expect(
     $catalog[MODEL_CHOICE_OPENAI_GPT5_NANO]['supports_logprobs'] === false,
@@ -47,8 +52,12 @@ expect(
     'Qwen 3.8 doit utiliser la forme booléenne de logprobs.'
 );
 expect(
-    $qwen38Profile['reasoning'] === null,
-    'Qwen 3.8 ne doit pas recevoir le paramètre reasoning de Qwen 3.5.'
+    $qwen38Profile['reasoning']['enabled'] === false,
+    'Qwen 3.8 doit demander la désactivation du raisonnement.'
+);
+expect(
+    $qwen38Profile['chat_template_kwargs']['enable_thinking'] === false,
+    'Qwen 3.8 doit désactiver le raisonnement dans son gabarit de chat.'
 );
 
 $deepseekProfile = getTogetherChatModelProfile(TOGETHER_MODEL_DEEPSEEK_V4_PRO);
@@ -56,13 +65,17 @@ expect(
     $deepseekProfile['logprobs'] === REQUESTED_LOGPROBS,
     'DeepSeek V4 Pro doit demander les logprobs et leurs alternatives.'
 );
+expect(
+    $deepseekProfile['reasoning']['enabled'] === false,
+    'DeepSeek V4 Pro doit désactiver le raisonnement pour aligner les logprobs.'
+);
 
 $defaultRequest = normaliseChatRequest([
     'messages' => [['role' => 'user', 'content' => 'Bonjour']],
 ]);
 expect(
     $defaultRequest['modelChoice'] === MODEL_CHOICE_TOGETHER,
-    'Qwen doit être le modèle sélectionné par défaut.'
+    'Together doit être le fournisseur sélectionné par défaut.'
 );
 
 $legacyRequest = normaliseChatRequest([
@@ -117,8 +130,9 @@ expect(!isset($openAiPayload['top_logprobs']), 'gpt-5-nano ne doit pas demander 
 expect(!isset($openAiPayload['max_tokens']), 'Aucun plafond applicatif de sortie ne doit être envoyé.');
 expect(!isset($openAiPayload['max_completion_tokens']), 'Aucun plafond applicatif de sortie ne doit être envoyé.');
 
+$qwen35Profile = getTogetherChatModelProfile(TOGETHER_MODEL_QWEN_3_5_9B);
 $togetherPayload = buildChatPayload(
-    $catalog[MODEL_CHOICE_TOGETHER],
+    array_merge($catalog[MODEL_CHOICE_TOGETHER], $qwen35Profile),
     'Réponds brièvement.',
     [['role' => 'user', 'content' => 'Bonjour']]
 );
@@ -133,7 +147,14 @@ $qwen38Payload = buildChatPayload(
     [['role' => 'user', 'content' => 'Bonjour']]
 );
 expect($qwen38Payload['logprobs'] === true, 'Qwen 3.8 doit recevoir logprobs=true.');
-expect(!isset($qwen38Payload['reasoning']), 'Qwen 3.8 ne doit pas recevoir reasoning.');
+expect(
+    $qwen38Payload['reasoning']['enabled'] === false,
+    'Qwen 3.8 doit demander la désactivation du raisonnement.'
+);
+expect(
+    $qwen38Payload['chat_template_kwargs']['enable_thinking'] === false,
+    'Qwen 3.8 doit recevoir enable_thinking=false.'
+);
 
 $deepseekPayload = buildChatPayload(
     array_merge($catalog[MODEL_CHOICE_TOGETHER], $deepseekProfile),
@@ -144,6 +165,13 @@ expect(
     $deepseekPayload['logprobs'] === REQUESTED_LOGPROBS,
     'DeepSeek V4 Pro doit recevoir le nombre de logprobs demandé.'
 );
-expect(!isset($deepseekPayload['reasoning']), 'DeepSeek V4 Pro ne doit pas recevoir reasoning.');
+expect(
+    $deepseekPayload['reasoning']['enabled'] === false,
+    'DeepSeek V4 Pro doit demander la désactivation du raisonnement.'
+);
+expect(
+    !isset($deepseekPayload['chat_template_kwargs']),
+    'DeepSeek V4 Pro ne doit pas recevoir de paramètre de gabarit Qwen.'
+);
 
 echo "OK - llmChatTest\n";

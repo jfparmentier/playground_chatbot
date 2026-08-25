@@ -10,7 +10,8 @@ const TOGETHER_MODEL_QWEN_3_8 = 'Qwen/Qwen3.8-2.4T-A95B';
 const TOGETHER_MODEL_DEEPSEEK_V4_PRO = 'deepseek-ai/DeepSeek-V4-Pro';
 
 // Pour tester un autre modèle Together, modifiez uniquement cette constante.
-const TOGETHER_CHAT_MODEL = TOGETHER_MODEL_QWEN_3_5_9B;
+// const TOGETHER_CHAT_MODEL = TOGETHER_MODEL_QWEN_3_5_9B;
+const TOGETHER_CHAT_MODEL = TOGETHER_MODEL_DEEPSEEK_V4_PRO;
 
 const OPENAI_CHAT_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 const TOGETHER_CHAT_ENDPOINT = 'https://api.together.ai/v1/chat/completions';
@@ -31,16 +32,19 @@ function getTogetherChatModelProfile(string $model): array
             'model' => TOGETHER_MODEL_QWEN_3_5_9B,
             'logprobs' => REQUESTED_LOGPROBS,
             'reasoning' => ['enabled' => false],
+            'chat_template_kwargs' => null,
         ],
         TOGETHER_MODEL_QWEN_3_8 => [
             'model' => TOGETHER_MODEL_QWEN_3_8,
             'logprobs' => true,
-            'reasoning' => null,
+            'reasoning' => ['enabled' => false],
+            'chat_template_kwargs' => ['enable_thinking' => false],
         ],
         TOGETHER_MODEL_DEEPSEEK_V4_PRO => [
             'model' => TOGETHER_MODEL_DEEPSEEK_V4_PRO,
             'logprobs' => REQUESTED_LOGPROBS,
-            'reasoning' => null,
+            'reasoning' => ['enabled' => false],
+            'chat_template_kwargs' => null,
         ],
     ];
 
@@ -76,6 +80,7 @@ function getChatModelCatalog(): array
             'supports_logprobs' => true,
             'logprobs' => $togetherProfile['logprobs'],
             'reasoning' => $togetherProfile['reasoning'],
+            'chat_template_kwargs' => $togetherProfile['chat_template_kwargs'],
             'endpoint' => TOGETHER_CHAT_ENDPOINT,
             'environment_key' => 'TOGETHER_API_KEY',
             'config_key' => 'together_api_key',
@@ -249,6 +254,10 @@ function buildChatPayload(array $model, string $systemPrompt, array $messages): 
 
     if (is_array($model['reasoning'])) {
         $payload['reasoning'] = $model['reasoning'];
+    }
+
+    if (is_array($model['chat_template_kwargs'])) {
+        $payload['chat_template_kwargs'] = $model['chat_template_kwargs'];
     }
 
     return $payload;
