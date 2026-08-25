@@ -10,6 +10,7 @@ function initialiseChatInterface() {
 
     interfaceConversationInitialisee = true;
     initialiseChatBottomDock();
+    actualiseVisibilitePromptSysteme(false, false);
     ajusteHauteurChampMessage();
     afficheConversation();
     actualiseInterfaceConversation();
@@ -24,6 +25,39 @@ function actualiseHauteurChatBottomDock() {
     }
 
     page.style.setProperty("--chat-dock-height", dock.offsetHeight + "px");
+}
+
+function actualiseVisibilitePromptSysteme(visible, placeFocus) {
+    var editor = document.getElementById("system_prompt_editor");
+    var toggle = document.getElementById("system_prompt_toggle");
+    var input = document.getElementById("system_prompt");
+    var actionLabel = visible
+        ? "Masquer le prompt système"
+        : "Afficher le prompt système";
+
+    if (editor) {
+        editor.hidden = !visible;
+    }
+
+    if (toggle) {
+        toggle.setAttribute("aria-expanded", visible ? "true" : "false");
+        toggle.setAttribute("aria-label", actionLabel);
+        toggle.title = actionLabel;
+    }
+
+    if (visible && placeFocus && input) {
+        input.focus();
+    }
+}
+
+function basculePromptSysteme() {
+    var editor = document.getElementById("system_prompt_editor");
+
+    if (!editor) {
+        return;
+    }
+
+    actualiseVisibilitePromptSysteme(editor.hidden, editor.hidden);
 }
 
 function initialiseChatBottomDock() {
@@ -1189,6 +1223,8 @@ function reinitialiserChatComplet() {
     if (systemPrompt) {
         systemPrompt.value = "";
     }
+
+    actualiseVisibilitePromptSysteme(false, false);
 
     afficheConversation();
     actualiseInterfaceConversation();

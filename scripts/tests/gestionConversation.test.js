@@ -53,6 +53,8 @@ const elements = {
     composer_hint: createElement(),
     conversation_limit_notice: createElement({ hidden: true }),
     system_prompt: createElement({ value: "Reste concis." }),
+    system_prompt_editor: createElement({ hidden: true }),
+    system_prompt_toggle: createElement(),
     regenerate_response_button: createElement(),
     reset_chat_button: createElement(),
     conversation_messages: createElement(),
@@ -122,6 +124,18 @@ context.initialiseChatInterface();
 assert.equal(elements.send_message_button.disabled, true);
 assert.equal(elements.regenerate_response_button.disabled, true);
 assert.equal(elements.reset_chat_button.disabled, false);
+assert.equal(elements.system_prompt_editor.hidden, true);
+assert.equal(elements.system_prompt_toggle["aria-expanded"], "false");
+
+context.basculePromptSysteme();
+assert.equal(elements.system_prompt_editor.hidden, false);
+assert.equal(elements.system_prompt_toggle["aria-expanded"], "true");
+assert.equal(elements.system_prompt_toggle["aria-label"], "Masquer le prompt système");
+assert.equal(elements.system_prompt.focused, true);
+
+context.basculePromptSysteme();
+assert.equal(elements.system_prompt_editor.hidden, true);
+assert.equal(elements.system_prompt_toggle["aria-expanded"], "false");
 
 context.messagesConversation = [
     { role: "user", content: "Question" },
@@ -174,11 +188,14 @@ assert.equal(elements.chat_error.focused, true);
 assert.match(elements.chat_error.textContent, /temporairement indisponible/);
 
 const preservedSystemPrompt = elements.system_prompt.value;
+context.basculePromptSysteme();
+assert.equal(elements.system_prompt_editor.hidden, false);
 context.reinitialiserChatComplet();
 assert.equal(context.messagesConversation.length, 0);
 assert.notEqual(preservedSystemPrompt, "");
 assert.equal(elements.system_prompt.value, "");
 assert.equal(elements.user_message.value, "");
+assert.equal(elements.system_prompt_editor.hidden, true);
 
 context.messagesConversation = [
     { role: "user", content: "Un" },

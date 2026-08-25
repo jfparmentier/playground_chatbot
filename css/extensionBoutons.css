@@ -1213,6 +1213,50 @@ summary:focus-visible {
   margin-bottom: 0;
 }
 
+.system-prompt-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  padding: 0.6rem 0 1rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #526671;
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-align: left;
+  text-transform: none;
+}
+
+.system-prompt-toggle:hover,
+.system-prompt-toggle:focus-visible {
+  background: transparent;
+  color: #2980b9;
+}
+
+.system-prompt-toggle i {
+  margin-left: 1rem;
+  font-size: 1.1rem;
+  transition: transform 160ms ease;
+}
+
+.system-prompt-toggle[aria-expanded="true"] i {
+  transform: rotate(180deg);
+}
+
+.system-prompt-editor[hidden] {
+  display: none;
+}
+
+.system-prompt-editor {
+  padding-bottom: 0.4rem;
+}
+
 /* Actions du dernier message utilisateur */
 .chat-message.is-user .chat-message-actions {
   justify-content: flex-end;

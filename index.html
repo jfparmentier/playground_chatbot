@@ -23,7 +23,7 @@
 	–––––––––––––––––––––––––––––––––––––––––––––––––– -->
 	<link rel="stylesheet" href="css/normalize.css">
 	<link rel="stylesheet" href="css/skeleton.css">
-	<link rel="stylesheet" href="css/extensionBoutons.css?v=15">
+	<link rel="stylesheet" href="css/extensionBoutons.css?v=16">
 	
 	<!-- Javascript
 	–––––––––––––––––––––––––––––––––––––––––––––––––– -->
@@ -31,7 +31,7 @@
 	<script src="scripts/gestionPage.js?v=2"></script>
 	<script src="scripts/generationId.js"></script>
 	<script src="scripts/vuePremiereConnexion.js?v=2"></script>
-	<script src="scripts/gestionLLM.js?v=22"></script>
+	<script src="scripts/gestionLLM.js?v=23"></script>
 	<script src="scripts/appelsPHP.js"></script>
 
 </head>
@@ -72,11 +72,18 @@
 						</button>
 					</header>
 
-					<section class="system-prompt-card" aria-labelledby="system_prompt_label">
-						<div class="field-heading">
-							<label for="system_prompt" id="system_prompt_label">Prompt système</label>
+					<section class="system-prompt-card" aria-label="Configuration du prompt système">
+						<button type="button" class="system-prompt-toggle" id="system_prompt_toggle"
+							aria-expanded="false" aria-controls="system_prompt_editor"
+							aria-label="Afficher le prompt système" title="Afficher le prompt système"
+							onclick="basculePromptSysteme();">
+							<span>Prompt système</span>
+							<i class="fas fa-chevron-down" aria-hidden="true"></i>
+						</button>
+						<div class="system-prompt-editor" id="system_prompt_editor" hidden>
+							<label class="screen-reader-only" for="system_prompt">Prompt système</label>
+							<textarea class="u-full-width" rows="3" maxlength="8000" id="system_prompt" placeholder="Ex. Tu es un assistant concis qui explique ses réponses simplement."></textarea>
 						</div>
-						<textarea class="u-full-width" rows="3" maxlength="8000" id="system_prompt" placeholder="Ex. Tu es un assistant concis qui explique ses réponses simplement."></textarea>
 					</section>
 
 					<section class="conversation-panel" aria-labelledby="conversation_title">
