@@ -11,7 +11,6 @@ function initialiseChatInterface() {
     interfaceConversationInitialisee = true;
     initialiseChatBottomDock();
     ajusteHauteurChampMessage();
-    changeModeleSelectionne();
     afficheConversation();
     actualiseInterfaceConversation();
 }
@@ -46,20 +45,6 @@ function getNombreMessagesUtilisateur() {
     return messagesConversation.filter(function (message) {
         return message.role === "user";
     }).length;
-}
-
-function changeModeleSelectionne() {
-    var modelSelect = document.getElementById("model_llm");
-    var capabilityHint = document.getElementById("model_capability_hint");
-    var supportsLogprobs = modelSelect && modelSelect.value === "together_qwen";
-
-    cacheErreurConversation();
-
-    if (capabilityHint) {
-        capabilityHint.textContent = supportsLogprobs
-            ? "Survolez un token de la dernière réponse pour afficher sa probabilité."
-            : "Les probabilités de tokens ne sont pas disponibles pour ce modèle.";
-    }
 }
 
 function escapeHtml(value) {
@@ -660,6 +645,21 @@ function construitMessageHtml(message, index) {
     var displaysTokenProbabilities = !isUser
         && index === messagesConversation.length - 1
         && message.logprobs;
+    var isLastUserMessage = isUser && index === getIndexDernierMessageUtilisateur();
+    var userActions = isLastUserMessage
+        ? ''
+            + '    <div class="chat-message-actions is-user-actions">'
+            + '      <button type="button" aria-label="Copier le dernier message"'
+            + '        title="Copier" onclick="copierDernierMessageUtilisateur();">'
+            + '        <span class="chatgpt-action-icon is-copy" aria-hidden="true"></span>'
+            + '      </button>'
+            + '      <button type="button" aria-label="Éditer le dernier message"'
+            + '        title="Éditer" onclick="editerDernierMessageUtilisateur();"'
+            + (generationEnCours ? ' disabled' : '') + '>'
+            + '        <span class="chatgpt-action-icon is-edit" aria-hidden="true"></span>'
+            + '      </button>'
+            + '    </div>'
+        : "";
     var regenerateAction = !isUser && index === messagesConversation.length - 1
         ? ''
             + '    <div class="chat-message-actions">'
@@ -681,9 +681,20 @@ function construitMessageHtml(message, index) {
         + '    <div class="chat-bubble">'
         + formatMessageContent(message.content, displaysTokenProbabilities ? message.logprobs : null)
         + '</div>'
+        + userActions
         + regenerateAction
         + '  </div>'
         + '</article>';
+}
+
+function getIndexDernierMessageUtilisateur() {
+    for (var index = messagesConversation.length - 1; index >= 0; index--) {
+        if (messagesConversation[index].role === "user") {
+            return index;
+        }
+    }
+
+    return -1;
 }
 
 function construitAttenteHtml() {
@@ -739,8 +750,8 @@ function actualiseInterfaceConversation() {
     var hint = document.getElementById("composer_hint");
     var limitNotice = document.getElementById("conversation_limit_notice");
     var systemPrompt = document.getElementById("system_prompt");
-    var modelSelect = document.getElementById("model_llm");
     var regenerateButton = document.getElementById("regenerate_response_button");
+    var resetButton = document.getElementById("reset_chat_button");
     var userMessageCount = getNombreMessagesUtilisateur();
     var limitReached = userMessageCount >= MAX_MESSAGES_UTILISATEUR;
     var hasText = input && input.value.trim() !== "";
@@ -808,12 +819,12 @@ function actualiseInterfaceConversation() {
         systemPrompt.disabled = generationEnCours;
     }
 
-    if (modelSelect) {
-        modelSelect.disabled = generationEnCours;
-    }
-
     if (regenerateButton) {
         regenerateButton.disabled = generationEnCours || !canRegenerate;
+    }
+
+    if (resetButton) {
+        resetButton.disabled = generationEnCours;
     }
 
 }
@@ -848,6 +859,45 @@ function ajusteHauteurChampMessage() {
 function gereSaisieMessage() {
     ajusteHauteurChampMessage();
     actualiseInterfaceConversation();
+}
+
+function copierDernierMessageUtilisateur() {
+    var index = getIndexDernierMessageUtilisateur();
+    var clipboard = window.navigator && window.navigator.clipboard;
+
+    if (index < 0 || !clipboard || typeof clipboard.writeText !== "function") {
+        annonceStatutConversation("La copie n’est pas disponible dans ce navigateur.");
+        return;
+    }
+
+    clipboard.writeText(messagesConversation[index].content).then(function () {
+        annonceStatutConversation("Le message a été copié.");
+    }).catch(function () {
+        annonceStatutConversation("La copie du message a échoué.");
+    });
+}
+
+function editerDernierMessageUtilisateur() {
+    if (generationEnCours) {
+        return;
+    }
+
+    var index = getIndexDernierMessageUtilisateur();
+    var input = document.getElementById("user_message");
+
+    if (index < 0 || !input) {
+        return;
+    }
+
+    var content = messagesConversation[index].content;
+    messagesConversation = messagesConversation.slice(0, index);
+    input.value = content;
+    cacheErreurConversation();
+    ajusteHauteurChampMessage();
+    afficheConversation();
+    actualiseInterfaceConversation();
+    annonceStatutConversation("Le message peut maintenant être modifié.");
+    input.focus();
 }
 
 function afficheErreurConversation(message) {
@@ -1057,8 +1107,8 @@ function regenererDerniereReponse() {
     lanceGeneration(contexte);
 }
 
-function recommencerConversation() {
-    if (generationEnCours || messagesConversation.length === 0) {
+function reinitialiserChatComplet() {
+    if (generationEnCours) {
         return;
     }
 
@@ -1067,14 +1117,20 @@ function recommencerConversation() {
     cacheErreurConversation();
 
     var input = document.getElementById("user_message");
+    var systemPrompt = document.getElementById("system_prompt");
+
     if (input) {
         input.value = "";
         ajusteHauteurChampMessage();
     }
 
+    if (systemPrompt) {
+        systemPrompt.value = "";
+    }
+
     afficheConversation();
     actualiseInterfaceConversation();
-    annonceStatutConversation("La conversation a été réinitialisée.");
+    annonceStatutConversation("La conversation et le prompt système ont été effacés.");
 
     if (input) {
         input.focus();

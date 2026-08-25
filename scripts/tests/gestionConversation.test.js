@@ -53,18 +53,15 @@ const elements = {
     composer_hint: createElement(),
     conversation_limit_notice: createElement({ hidden: true }),
     system_prompt: createElement({ value: "Reste concis." }),
-    model_llm: createElement({
-        value: "together_qwen",
-        selectedIndex: 0,
-        options: [{ text: "Qwen3.5-9B — Together AI" }]
-    }),
     regenerate_response_button: createElement(),
+    reset_chat_button: createElement(),
     conversation_messages: createElement(),
-    model_capability_hint: createElement(),
     chat_error: createElement({ hidden: true }),
     chat_status: createElement(),
     chat_form: createElement()
 };
+
+let copiedMessage = "";
 
 const context = {
     console,
@@ -91,6 +88,14 @@ const context = {
         throw new Error("Un appel simulé doit être installé par le test.");
     },
     window: {
+        navigator: {
+            clipboard: {
+                writeText(value) {
+                    copiedMessage = value;
+                    return Promise.resolve();
+                }
+            }
+        },
         addEventListener() {},
         requestAnimationFrame(callback) {
             callback();
@@ -114,9 +119,9 @@ vm.runInContext(
 );
 
 context.initialiseChatInterface();
-assert.equal(elements.model_llm.value, "together_qwen");
 assert.equal(elements.send_message_button.disabled, true);
 assert.equal(elements.regenerate_response_button.disabled, true);
+assert.equal(elements.reset_chat_button.disabled, false);
 
 context.messagesConversation = [
     { role: "user", content: "Question" },
@@ -127,8 +132,14 @@ context.actualiseInterfaceConversation();
 assert.equal(elements.regenerate_response_button.disabled, false);
 assert.equal(elements.send_button_label.textContent, "Poursuivre");
 assert.match(elements.conversation_messages.innerHTML, /id="regenerate_response_button"/);
+assert.match(elements.conversation_messages.innerHTML, /copierDernierMessageUtilisateur/);
+assert.match(elements.conversation_messages.innerHTML, /editerDernierMessageUtilisateur/);
+assert.match(elements.conversation_messages.innerHTML, /chatgpt-action-icon is-copy/);
+assert.match(elements.conversation_messages.innerHTML, /chatgpt-action-icon is-edit/);
 assert.doesNotMatch(elements.conversation_messages.innerHTML, /GPT-5 nano — OpenAI/);
 assert.doesNotMatch(elements.conversation_messages.innerHTML, />Vous</);
+context.copierDernierMessageUtilisateur();
+assert.equal(copiedMessage, "Question");
 
 context.appel_php_async = function (_file, _params, success) {
     success(JSON.stringify({
@@ -163,11 +174,11 @@ assert.equal(elements.chat_error.focused, true);
 assert.match(elements.chat_error.textContent, /temporairement indisponible/);
 
 const preservedSystemPrompt = elements.system_prompt.value;
-const preservedModel = elements.model_llm.value;
-context.recommencerConversation();
+context.reinitialiserChatComplet();
 assert.equal(context.messagesConversation.length, 0);
-assert.equal(elements.system_prompt.value, preservedSystemPrompt);
-assert.equal(elements.model_llm.value, preservedModel);
+assert.notEqual(preservedSystemPrompt, "");
+assert.equal(elements.system_prompt.value, "");
+assert.equal(elements.user_message.value, "");
 
 context.messagesConversation = [
     { role: "user", content: "Un" },
@@ -183,6 +194,12 @@ assert.equal(elements.user_message.disabled, true);
 assert.equal(elements.send_message_button.disabled, true);
 assert.equal(elements.regenerate_response_button.disabled, false);
 assert.equal(elements.conversation_limit_notice.hidden, false);
+
+context.editerDernierMessageUtilisateur();
+assert.equal(context.messagesConversation.length, 4);
+assert.equal(elements.user_message.value, "Trois");
+assert.equal(context.getNombreMessagesUtilisateur(), 2);
+assert.equal(elements.user_message.focused, true);
 
 elements.user_message.disabled = false;
 elements.user_message.value = "Un message sur plusieurs lignes";

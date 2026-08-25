@@ -5,6 +5,13 @@ declare(strict_types=1);
 const MODEL_CHOICE_OPENAI_GPT5_NANO = 'openai_gpt5_nano';
 const MODEL_CHOICE_TOGETHER_QWEN = 'together_qwen';
 const DEFAULT_MODEL_CHOICE = MODEL_CHOICE_TOGETHER_QWEN;
+const TOGETHER_MODEL_QWEN_3_5_9B = 'Qwen/Qwen3.5-9B';
+const TOGETHER_MODEL_QWEN_3_8 = 'Qwen/Qwen3.8-2.4T-A95B';
+const TOGETHER_MODEL_DEEPSEEK_V4_PRO = 'deepseek-ai/DeepSeek-V4-Pro';
+
+// Pour tester un autre modèle Together, modifiez uniquement cette constante.
+const TOGETHER_CHAT_MODEL = TOGETHER_MODEL_QWEN_3_5_9B;
+
 const OPENAI_CHAT_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 const TOGETHER_CHAT_ENDPOINT = 'https://api.together.ai/v1/chat/completions';
 const MAX_USER_MESSAGES = 3;
@@ -13,11 +20,45 @@ const MAX_MESSAGE_LENGTH = 16000;
 const REQUESTED_LOGPROBS = 5;
 
 /**
+ * Paramètres propres aux modèles Together pris en charge par l'application.
+ * Certaines infrastructures Together attendent un entier pour `logprobs`,
+ * tandis que Qwen 3.8 exige un booléen.
+ */
+function getTogetherChatModelProfile(string $model): array
+{
+    $profiles = [
+        TOGETHER_MODEL_QWEN_3_5_9B => [
+            'model' => TOGETHER_MODEL_QWEN_3_5_9B,
+            'logprobs' => REQUESTED_LOGPROBS,
+            'reasoning' => ['enabled' => false],
+        ],
+        TOGETHER_MODEL_QWEN_3_8 => [
+            'model' => TOGETHER_MODEL_QWEN_3_8,
+            'logprobs' => true,
+            'reasoning' => null,
+        ],
+        TOGETHER_MODEL_DEEPSEEK_V4_PRO => [
+            'model' => TOGETHER_MODEL_DEEPSEEK_V4_PRO,
+            'logprobs' => REQUESTED_LOGPROBS,
+            'reasoning' => null,
+        ],
+    ];
+
+    if (!isset($profiles[$model])) {
+        throw new LogicException('Le modèle Together configuré n’est pas pris en charge.');
+    }
+
+    return $profiles[$model];
+}
+
+/**
  * Registre serveur des seuls modèles exposés par l'application.
  * Les identifiants réels ne sont jamais acceptés directement du navigateur.
  */
 function getChatModelCatalog(): array
 {
+    $togetherProfile = getTogetherChatModelProfile(TOGETHER_CHAT_MODEL);
+
     return [
         MODEL_CHOICE_OPENAI_GPT5_NANO => [
             'provider' => 'openai',
@@ -31,8 +72,10 @@ function getChatModelCatalog(): array
         MODEL_CHOICE_TOGETHER_QWEN => [
             'provider' => 'together',
             'provider_name' => 'Together AI',
-            'model' => 'Qwen/Qwen3.5-9B',
+            'model' => $togetherProfile['model'],
             'supports_logprobs' => true,
+            'logprobs' => $togetherProfile['logprobs'],
+            'reasoning' => $togetherProfile['reasoning'],
             'endpoint' => TOGETHER_CHAT_ENDPOINT,
             'environment_key' => 'TOGETHER_API_KEY',
             'config_key' => 'together_api_key',
@@ -202,8 +245,11 @@ function buildChatPayload(array $model, string $systemPrompt, array $messages): 
     $payload['temperature'] = 0.7;
     $payload['top_p'] = 1.0;
     $payload['n'] = 1;
-    $payload['logprobs'] = REQUESTED_LOGPROBS;
-    $payload['reasoning'] = ['enabled' => false];
+    $payload['logprobs'] = $model['logprobs'];
+
+    if (is_array($model['reasoning'])) {
+        $payload['reasoning'] = $model['reasoning'];
+    }
 
     return $payload;
 }

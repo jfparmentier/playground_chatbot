@@ -1167,3 +1167,133 @@ summary:focus-visible {
   opacity: 1;
   transform: translate(-50%, 0);
 }
+
+/* En-tête simplifié et réinitialisation complète */
+.reset-chat-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  width: 3.4rem;
+  height: 3.4rem;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #b8c5cd;
+  border-radius: 50%;
+  background: #fff;
+  color: #34495e;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.reset-chat-button:hover,
+.reset-chat-button:focus-visible {
+  border-color: #2980b9;
+  background: #eef7fc;
+  color: #2980b9;
+}
+
+.reset-chat-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* Prompt système sans carte extérieure */
+.system-prompt-card {
+  margin-bottom: 1.2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.system-prompt-card textarea {
+  margin-bottom: 0;
+}
+
+/* Actions du dernier message utilisateur */
+.chat-message.is-user .chat-message-actions {
+  justify-content: flex-end;
+}
+
+.chat-message-actions.is-user-actions {
+  gap: 0.2rem;
+}
+
+.chat-message-actions.is-user-actions button {
+  width: 3.2rem;
+  height: 3.2rem;
+  background: transparent;
+  color: #71818b;
+}
+
+.chat-message-actions.is-user-actions button:hover,
+.chat-message-actions.is-user-actions button:focus-visible {
+  background: #edf2f4;
+  color: #2980b9;
+}
+
+.chatgpt-action-icon {
+  position: relative;
+  display: block;
+  width: 1.6rem;
+  height: 1.6rem;
+  color: currentColor;
+}
+
+.chatgpt-action-icon.is-copy::before,
+.chatgpt-action-icon.is-copy::after {
+  content: "";
+  position: absolute;
+  width: 0.9rem;
+  height: 1.05rem;
+  box-sizing: border-box;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+}
+
+.chatgpt-action-icon.is-copy::before {
+  top: 0.1rem;
+  left: 0.55rem;
+}
+
+.chatgpt-action-icon.is-copy::after {
+  top: 0.45rem;
+  left: 0.2rem;
+  background: #f7f9fa;
+}
+
+.chat-message-actions.is-user-actions button:hover .chatgpt-action-icon.is-copy::after,
+.chat-message-actions.is-user-actions button:focus-visible .chatgpt-action-icon.is-copy::after {
+  background: #edf2f4;
+}
+
+.chatgpt-action-icon.is-edit {
+  transform: rotate(135deg);
+}
+
+.chatgpt-action-icon.is-edit::before {
+  content: "";
+  position: absolute;
+  top: 0.55rem;
+  left: 0.15rem;
+  width: 1.15rem;
+  height: 0.42rem;
+  box-sizing: border-box;
+  border: 1.5px solid currentColor;
+  border-radius: 1px;
+}
+
+.chatgpt-action-icon.is-edit::after {
+  content: "";
+  position: absolute;
+  top: 0.55rem;
+  left: 1.25rem;
+  width: 0;
+  height: 0;
+  border-top: 0.21rem solid transparent;
+  border-bottom: 0.21rem solid transparent;
+  border-left: 0.34rem solid currentColor;
+}

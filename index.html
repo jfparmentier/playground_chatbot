@@ -23,7 +23,7 @@
 	–––––––––––––––––––––––––––––––––––––––––––––––––– -->
 	<link rel="stylesheet" href="css/normalize.css">
 	<link rel="stylesheet" href="css/skeleton.css">
-	<link rel="stylesheet" href="css/extensionBoutons.css?v=11">
+	<link rel="stylesheet" href="css/extensionBoutons.css?v=15">
 	
 	<!-- Javascript
 	–––––––––––––––––––––––––––––––––––––––––––––––––– -->
@@ -31,7 +31,7 @@
 	<script src="scripts/gestionPage.js?v=2"></script>
 	<script src="scripts/generationId.js"></script>
 	<script src="scripts/vuePremiereConnexion.js?v=2"></script>
-	<script src="scripts/gestionLLM.js?v=17"></script>
+	<script src="scripts/gestionLLM.js?v=20"></script>
 	<script src="scripts/appelsPHP.js"></script>
 
 </head>
@@ -67,19 +67,9 @@
 							<h5>Chatbot de démonstration</h5>
 						</div>
 
-						<details class="model-settings">
-							<summary title="Paramètres du modèle" aria-label="Afficher les paramètres du modèle">
-								<i class="fas fa-cog" aria-hidden="true"></i>
-							</summary>
-							<div class="model-settings-panel">
-								<label for="model_llm">Modèle de langage</label>
-								<select class="u-full-width" id="model_llm" onchange="changeModeleSelectionne();">
-									<option value="openai_gpt5_nano">GPT-5 nano — OpenAI</option>
-									<option value="together_qwen" selected>Qwen3.5-9B — Together AI</option>
-								</select>
-								<p class="model-capability-hint" id="model_capability_hint">Survolez un token de la dernière réponse pour afficher sa probabilité.</p>
-							</div>
-						</details>
+						<button type="button" class="reset-chat-button" id="reset_chat_button" aria-label="Effacer la conversation et le prompt système" title="Tout réinitialiser" onclick="reinitialiserChatComplet();">
+							<i class="fas fa-redo-alt" aria-hidden="true"></i>
+						</button>
 					</header>
 
 					<section class="system-prompt-card" aria-labelledby="system_prompt_label">

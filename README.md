@@ -4,12 +4,14 @@ Cette application évolue vers un chatbot pédagogique limité à trois messages
 
 ## Modèles disponibles
 
-Le menu de paramètres, accessible par l’icône en forme d’engrenage en haut à droite, propose deux modèles :
+La passerelle prend en charge GPT-5 nano et trois modèles Together :
 
 - **GPT-5 nano**, développé et appelé par OpenAI ;
-- **Qwen3.5-9B**, développé par Alibaba Cloud et appelé par Together AI.
+- **Qwen3.5-9B**, modèle Together utilisé par défaut ;
+- **Qwen3.8-2.4T-A95B** ;
+- **DeepSeek V4 Pro**.
 
-Qwen3.5-9B est sélectionné par défaut.
+L’interface utilise Qwen3.5-9B. Pour tester un autre modèle Together sans modifier l’interface, remplacez la valeur de `TOGETHER_CHAT_MODEL` dans `php/llmChat.php` par `TOGETHER_MODEL_QWEN_3_8` ou `TOGETHER_MODEL_DEEPSEEK_V4_PRO`. L’icône de rafraîchissement située en haut à droite efface la conversation, le message en cours de saisie et le prompt système.
 
 ## Configuration
 
@@ -42,7 +44,7 @@ Les identifiants de modèles et les endpoints sont fixés dans le registre serve
 
 La passerelle accepte un `systemPrompt`, un identifiant `model` ou `modele`, et un tableau `messages`. Les rôles `user` et `assistant` doivent alterner, la requête doit se terminer par `user` et le serveur refuse tout quatrième message utilisateur. Aucun petit plafond de génération n’est ajouté par l’application : seules les limites techniques du fournisseur demeurent.
 
-L’interface transmet le prompt système et l’historique complet à chaque appel. L’ancien champ `prompt` reste accepté par la passerelle pour les anciennes intégrations à un tour. Qwen3.5-9B fournit les `logprobs` attendues. Les API OpenAI refusent actuellement les `logprobs` pour `gpt-5-nano`, qui reste utilisable sans cet affichage. L’interface l’indique sans traiter cette absence comme une erreur.
+L’interface transmet le prompt système et l’historique complet à chaque appel. L’ancien champ `prompt` reste accepté par la passerelle pour les anciennes intégrations à un tour. Les trois modèles Together fournissent les `logprobs` attendues ; la passerelle choisit automatiquement leur format numérique ou booléen. Les API OpenAI refusent actuellement les `logprobs` pour `gpt-5-nano`, qui reste utilisable sans cet affichage. L’interface l’indique sans traiter cette absence comme une erreur.
 
 Les messages suivent l’ordre chronologique dans une colonne principale de 900 px, également utilisée par le prompt système et le champ de saisie. Le champ arrondi reste fixé au bas de la fenêtre et grandit avec son contenu ; la page réserve automatiquement sa hauteur afin qu’il ne masque pas la conversation.
 
@@ -52,6 +54,7 @@ Lorsque le modèle fournit les `logprobs`, tous les tokens de sa dernière répo
 
 - **Poursuivre** ajoute un nouveau message utilisateur, dans la limite de trois ;
 - L’icône **Régénérer** placée sous la dernière réponse supprime uniquement cette réponse et rejoue le même historique, sans consommer de message utilisateur supplémentaire.
+- Les icônes **Copier** et **Éditer** apparaissent sous le dernier message utilisateur. L’édition replace son texte dans le compositeur et retire la réponse qui le suivait.
 
 Si une régénération échoue, l’ancienne réponse et son affichage de tokens sont restaurés.
 

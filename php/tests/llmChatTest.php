@@ -30,7 +30,7 @@ expect(
 );
 expect(
     $catalog[MODEL_CHOICE_TOGETHER_QWEN]['model'] === 'Qwen/Qwen3.5-9B',
-    'Le modèle Together doit être Qwen/Qwen3.5-9B.'
+    'Qwen3.5-9B doit rester le modèle Together par défaut.'
 );
 expect(
     $catalog[MODEL_CHOICE_OPENAI_GPT5_NANO]['supports_logprobs'] === false,
@@ -39,6 +39,22 @@ expect(
 expect(
     $catalog[MODEL_CHOICE_TOGETHER_QWEN]['supports_logprobs'] === true,
     'Qwen doit signaler la disponibilité des logprobs.'
+);
+
+$qwen38Profile = getTogetherChatModelProfile(TOGETHER_MODEL_QWEN_3_8);
+expect(
+    $qwen38Profile['logprobs'] === true,
+    'Qwen 3.8 doit utiliser la forme booléenne de logprobs.'
+);
+expect(
+    $qwen38Profile['reasoning'] === null,
+    'Qwen 3.8 ne doit pas recevoir le paramètre reasoning de Qwen 3.5.'
+);
+
+$deepseekProfile = getTogetherChatModelProfile(TOGETHER_MODEL_DEEPSEEK_V4_PRO);
+expect(
+    $deepseekProfile['logprobs'] === REQUESTED_LOGPROBS,
+    'DeepSeek V4 Pro doit demander les logprobs et leurs alternatives.'
 );
 
 $defaultRequest = normaliseChatRequest([
@@ -110,5 +126,24 @@ expect($togetherPayload['messages'][0]['role'] === 'system', 'Together doit rece
 expect($togetherPayload['logprobs'] === 5, 'Together doit demander cinq alternatives.');
 expect($togetherPayload['reasoning']['enabled'] === false, 'Le raisonnement Qwen doit être désactivé.');
 expect(!isset($togetherPayload['max_tokens']), 'Aucun plafond applicatif de sortie ne doit être envoyé.');
+
+$qwen38Payload = buildChatPayload(
+    array_merge($catalog[MODEL_CHOICE_TOGETHER_QWEN], $qwen38Profile),
+    'Réponds brièvement.',
+    [['role' => 'user', 'content' => 'Bonjour']]
+);
+expect($qwen38Payload['logprobs'] === true, 'Qwen 3.8 doit recevoir logprobs=true.');
+expect(!isset($qwen38Payload['reasoning']), 'Qwen 3.8 ne doit pas recevoir reasoning.');
+
+$deepseekPayload = buildChatPayload(
+    array_merge($catalog[MODEL_CHOICE_TOGETHER_QWEN], $deepseekProfile),
+    'Réponds brièvement.',
+    [['role' => 'user', 'content' => 'Bonjour']]
+);
+expect(
+    $deepseekPayload['logprobs'] === REQUESTED_LOGPROBS,
+    'DeepSeek V4 Pro doit recevoir le nombre de logprobs demandé.'
+);
+expect(!isset($deepseekPayload['reasoning']), 'DeepSeek V4 Pro ne doit pas recevoir reasoning.');
 
 echo "OK - llmChatTest\n";
