@@ -64,6 +64,7 @@ const elements = {
 };
 
 let copiedMessage = "";
+let sentParams = null;
 
 const context = {
     console,
@@ -120,6 +121,9 @@ vm.runInContext(
     { filename: "gestionLLM.js" }
 );
 
+assert.equal(context.extraitTexteReponse({ message: { content: "Réponse chat" } }), "Réponse chat");
+assert.equal(context.extraitTexteReponse({ text: "Réponse completion" }), "Réponse completion");
+
 context.initialiseChatInterface();
 assert.equal(elements.send_message_button.disabled, true);
 assert.equal(elements.regenerate_response_button.disabled, true);
@@ -155,20 +159,24 @@ assert.doesNotMatch(elements.conversation_messages.innerHTML, />Vous</);
 context.copierDernierMessageUtilisateur();
 assert.equal(copiedMessage, "Question");
 
-context.appel_php_async = function (_file, _params, success) {
+context.appel_php_async = function (_file, params, success) {
+    sentParams = JSON.parse(params);
     success(JSON.stringify({
         choices: [{
-            message: { content: "Nouvelle réponse" },
+            text: "Nouvelle réponse",
             logprobs: {
-                content: [
-                    { token: "Nouvelle", logprob: -0.1, top_logprobs: [] },
-                    { token: " réponse", logprob: -0.2, top_logprobs: [] }
+                tokens: ["Nouvelle", " réponse"],
+                token_logprobs: [-0.1, -0.2],
+                top_logprobs: [
+                    { "Nouvelle": -0.1 },
+                    { " réponse": -0.2 }
                 ]
             }
         }]
     }));
 };
 context.regenererDerniereReponse();
+assert.equal(sentParams.model, "fireworks_deepseek_v4_flash_0731");
 assert.equal(context.messagesConversation.length, 2);
 assert.equal(context.messagesConversation[0].content, "Question");
 assert.equal(context.messagesConversation[1].content, "Nouvelle réponse");

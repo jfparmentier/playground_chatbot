@@ -2,18 +2,22 @@
 
 declare(strict_types=1);
 
-const MODEL_CHOICE_OPENAI_GPT5_NANO = 'openai_gpt5_nano';
+const MODEL_CHOICE_OPENAI_GPT5_6_LUNA = 'openai_gpt5_6_luna';
 const MODEL_CHOICE_TOGETHER = 'together';
-const DEFAULT_MODEL_CHOICE = MODEL_CHOICE_TOGETHER;
+const MODEL_CHOICE_FIREWORKS_DEEPSEEK_V4_FLASH_0731 = 'fireworks_deepseek_v4_flash_0731';
+const DEFAULT_MODEL_CHOICE = MODEL_CHOICE_FIREWORKS_DEEPSEEK_V4_FLASH_0731;
 const TOGETHER_MODEL_QWEN_3_5_9B = 'Qwen/Qwen3.5-9B';
 const TOGETHER_MODEL_QWEN_3_8 = 'Qwen/Qwen3.8-2.4T-A95B';
 const TOGETHER_MODEL_DEEPSEEK_V4_PRO = 'deepseek-ai/DeepSeek-V4-Pro';
+const FIREWORKS_MODEL_DEEPSEEK_V4_FLASH_0731 =
+    'accounts/fireworks/models/deepseek-v4-flash-0731';
 
 // Pour tester un autre modèle Together, modifiez uniquement cette constante.
 const TOGETHER_CHAT_MODEL = TOGETHER_MODEL_QWEN_3_5_9B;
 
 const OPENAI_CHAT_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 const TOGETHER_CHAT_ENDPOINT = 'https://api.together.ai/v1/chat/completions';
+const FIREWORKS_COMPLETIONS_ENDPOINT = 'https://api.fireworks.ai/inference/v1/completions';
 const MAX_USER_MESSAGES = 3;
 const MAX_SYSTEM_PROMPT_LENGTH = 8000;
 const MAX_MESSAGE_LENGTH = 16000;
@@ -63,10 +67,10 @@ function getChatModelCatalog(): array
     $togetherProfile = getTogetherChatModelProfile(TOGETHER_CHAT_MODEL);
 
     return [
-        MODEL_CHOICE_OPENAI_GPT5_NANO => [
+        MODEL_CHOICE_OPENAI_GPT5_6_LUNA => [
             'provider' => 'openai',
             'provider_name' => 'OpenAI',
-            'model' => 'gpt-5-nano',
+            'model' => 'gpt-5.6-luna',
             'supports_logprobs' => false,
             'endpoint' => OPENAI_CHAT_ENDPOINT,
             'environment_key' => 'OPENAI_API_KEY',
@@ -83,6 +87,15 @@ function getChatModelCatalog(): array
             'endpoint' => TOGETHER_CHAT_ENDPOINT,
             'environment_key' => 'TOGETHER_API_KEY',
             'config_key' => 'together_api_key',
+        ],
+        MODEL_CHOICE_FIREWORKS_DEEPSEEK_V4_FLASH_0731 => [
+            'provider' => 'fireworks',
+            'provider_name' => 'Fireworks AI',
+            'model' => FIREWORKS_MODEL_DEEPSEEK_V4_FLASH_0731,
+            'supports_logprobs' => true,
+            'endpoint' => FIREWORKS_COMPLETIONS_ENDPOINT,
+            'environment_key' => 'FIREWORKS_API_KEY',
+            'config_key' => 'fireworks_api_key',
         ],
     ];
 }
@@ -225,11 +238,46 @@ function buildProviderMessages(
 }
 
 /**
- * Construit une requête Chat Completions sans plafond applicatif de sortie.
+ * Convertit la conversation structurée en prompt pour l'endpoint Completions.
+ */
+function buildLegacyCompletionPrompt(string $systemPrompt, array $messages): string
+{
+    $sections = [];
+
+    if (trim($systemPrompt) !== '') {
+        $sections[] = "Instructions système :\n" . $systemPrompt;
+    }
+
+    foreach ($messages as $message) {
+        $label = $message['role'] === 'user' ? 'Utilisateur' : 'Assistant';
+        $sections[] = $label . " :\n" . $message['content'];
+    }
+
+    $sections[] = "Assistant :\n";
+
+    return implode("\n\n", $sections);
+}
+
+/**
+ * Construit la requête attendue par l'endpoint du fournisseur sélectionné.
  * Chaque fournisseur conserve donc uniquement ses limites techniques natives.
  */
-function buildChatPayload(array $model, string $systemPrompt, array $messages): array
+function buildModelPayload(array $model, string $systemPrompt, array $messages): array
 {
+    if ($model['provider'] === 'fireworks') {
+        return [
+            'model' => $model['model'],
+            'prompt' => buildLegacyCompletionPrompt($systemPrompt, $messages),
+            'stream' => false,
+            'temperature' => 0.7,
+            'top_p' => 1.0,
+            'n' => 1,
+            'logprobs' => REQUESTED_LOGPROBS,
+            'reasoning_effort' => 'none',
+            'stop' => ["\n\nUtilisateur :"],
+        ];
+    }
+
     $payload = [
         'model' => $model['model'],
         'messages' => buildProviderMessages(
@@ -241,8 +289,7 @@ function buildChatPayload(array $model, string $systemPrompt, array $messages): 
     ];
 
     if ($model['provider'] === 'openai') {
-        // gpt-5-nano est un modèle de raisonnement et refuse actuellement les
-        // logprobs sur Chat Completions comme sur Responses.
+        // GPT-5.6 Luna refuse actuellement les logprobs sur Chat Completions.
         return $payload;
     }
 
@@ -377,7 +424,7 @@ function callSelectedChatModel(array $request, array $localConfig): string
 
     return callChatJsonApi(
         $model['endpoint'],
-        buildChatPayload($model, $request['systemPrompt'], $request['messages']),
+        buildModelPayload($model, $request['systemPrompt'], $request['messages']),
         $apiKey,
         $model['provider_name']
     );

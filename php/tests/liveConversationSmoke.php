@@ -12,7 +12,8 @@ if (getenv('RUN_LIVE_LLM_TESTS') !== '1') {
 
 $config = loadLocalConfig();
 $models = [
-    MODEL_CHOICE_OPENAI_GPT5_NANO,
+    MODEL_CHOICE_FIREWORKS_DEEPSEEK_V4_FLASH_0731,
+    MODEL_CHOICE_OPENAI_GPT5_6_LUNA,
     MODEL_CHOICE_TOGETHER,
 ];
 $prompts = [
@@ -42,7 +43,7 @@ foreach ($models as $modelChoice) {
                 JSON_THROW_ON_ERROR
             );
             $choice = $response['choices'][0] ?? [];
-            $content = $choice['message']['content'] ?? '';
+            $content = $choice['message']['content'] ?? $choice['text'] ?? '';
 
             if (!is_string($content) || trim($content) === '') {
                 throw new RuntimeException('Une réponse est vide.');
@@ -62,7 +63,9 @@ foreach ($models as $modelChoice) {
             JSON_THROW_ON_ERROR
         );
         $regeneratedChoice = $regenerated['choices'][0] ?? [];
-        $regeneratedContent = $regeneratedChoice['message']['content'] ?? '';
+        $regeneratedContent = $regeneratedChoice['message']['content']
+            ?? $regeneratedChoice['text']
+            ?? '';
 
         if (!is_string($regeneratedContent) || trim($regeneratedContent) === '') {
             throw new RuntimeException('La réponse régénérée est vide.');

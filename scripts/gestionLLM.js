@@ -1057,11 +1057,19 @@ function reinitialiseApresPerteDeSession() {
     initialisePage();
 }
 
+function extraitTexteReponse(choice) {
+    if (choice && choice.message && typeof choice.message.content === "string") {
+        return choice.message.content;
+    }
+
+    return choice && typeof choice.text === "string" ? choice.text : "";
+}
+
 function lanceGeneration(contexte) {
     var input = document.getElementById("user_message");
     var modelSelect = document.getElementById("model_llm");
     var systemPrompt = document.getElementById("system_prompt");
-    var modele = modelSelect ? modelSelect.value : "together";
+    var modele = modelSelect ? modelSelect.value : "fireworks_deepseek_v4_flash_0731";
     var paramsPhp = {
         model: modele,
         systemPrompt: systemPrompt ? systemPrompt.value : "",
@@ -1084,10 +1092,7 @@ function lanceGeneration(contexte) {
                 }
 
                 var choice = responseJson.choices[0];
-                var assistantContent = choice.message
-                    && typeof choice.message.content === "string"
-                    ? choice.message.content
-                    : "";
+                var assistantContent = extraitTexteReponse(choice);
 
                 if (assistantContent.trim() === "") {
                     throw new Error("Le modèle n’a généré aucun texte.");

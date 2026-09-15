@@ -1,17 +1,18 @@
 # TP LLM — interface pédagogique de conversation
 
-Cette application évolue vers un chatbot pédagogique limité à trois messages utilisateur par conversation. Le socle serveur utilise désormais Chat Completions et conserve les probabilités associées aux tokens générés lorsqu’elles sont fournies par le modèle.
+Cette application évolue vers un chatbot pédagogique limité à trois messages utilisateur par conversation. Le socle serveur utilise les endpoints Completions ou Chat Completions selon le fournisseur et conserve les probabilités associées aux tokens générés lorsqu’elles sont fournies par le modèle.
 
 ## Modèles disponibles
 
-La passerelle prend en charge GPT-5 nano et trois modèles Together :
+La passerelle prend en charge DeepSeek-V4-Flash-0731, GPT-5.6 Luna et trois modèles Together :
 
-- **GPT-5 nano**, développé et appelé par OpenAI ;
-- **Qwen3.5-9B**, modèle Together utilisé par défaut ;
+- **DeepSeek-V4-Flash-0731**, appelé via Fireworks AI et utilisé par défaut ;
+- **GPT-5.6 Luna**, développé et appelé par OpenAI ;
+- **Qwen3.5-9B**, modèle Together configuré ;
 - **Qwen3.8-2.4T-A95B** ;
 - **DeepSeek V4 Pro**.
 
-L’interface utilise Qwen3.5-9B. Pour tester un autre modèle Together sans modifier l’interface, remplacez la valeur de `TOGETHER_CHAT_MODEL` dans `php/llmChat.php` par `TOGETHER_MODEL_QWEN_3_8` ou `TOGETHER_MODEL_DEEPSEEK_V4_PRO`. L’icône de rafraîchissement située en haut à droite efface la conversation, le message en cours de saisie et le prompt système.
+L’interface utilise DeepSeek-V4-Flash-0731 avec l’endpoint Fireworks `https://api.fireworks.ai/inference/v1/completions`. Pour tester un autre modèle Together via le choix `together`, remplacez la valeur de `TOGETHER_CHAT_MODEL` dans `php/llmChat.php` par `TOGETHER_MODEL_QWEN_3_8` ou `TOGETHER_MODEL_DEEPSEEK_V4_PRO`. L’icône de rafraîchissement située en haut à droite efface la conversation, le message en cours de saisie et le prompt système.
 
 ## Configuration
 
@@ -21,6 +22,7 @@ Copiez le fichier `php/config.example.php` sous le nom `php/config.local.php`, p
 <?php
 
 return [
+    'fireworks_api_key' => 'VOTRE_CLE_FIREWORKS_AI',
     'together_api_key' => 'VOTRE_CLE_TOGETHER_AI',
     'openai_api_key' => 'VOTRE_CLE_OPENAI',
 
@@ -35,6 +37,7 @@ Le fichier `php/config.local.php` est exclu du dépôt par `.gitignore`. Il ne d
 
 Les clés peuvent aussi être définies avec les variables d’environnement suivantes :
 
+- `FIREWORKS_API_KEY` ;
 - `TOGETHER_API_KEY` ;
 - `OPENAI_API_KEY`.
 
@@ -44,7 +47,7 @@ Les identifiants de modèles et les endpoints sont fixés dans le registre serve
 
 La passerelle accepte un `systemPrompt`, un identifiant `model` ou `modele`, et un tableau `messages`. Les rôles `user` et `assistant` doivent alterner, la requête doit se terminer par `user` et le serveur refuse tout quatrième message utilisateur. Aucun petit plafond de génération n’est ajouté par l’application : seules les limites techniques du fournisseur demeurent.
 
-L’interface transmet le prompt système et l’historique complet à chaque appel. Sa zone d’édition est masquée par défaut et peut être ouverte ou refermée depuis la ligne « Prompt système ». L’ancien champ `prompt` reste accepté par la passerelle pour les anciennes intégrations à un tour. Les trois modèles Together sont utilisés sans raisonnement et fournissent les `logprobs` attendues ; la passerelle choisit automatiquement leur format numérique ou booléen. Qwen 3.8 reçoit en complément `enable_thinking=false`, requis par son gabarit de chat. Les API OpenAI refusent actuellement les `logprobs` pour `gpt-5-nano`, qui reste utilisable sans cet affichage. L’interface l’indique sans traiter cette absence comme une erreur.
+L’interface transmet le prompt système et l’historique complet à chaque appel. Pour Fireworks Completions, la passerelle les sérialise dans un prompt textuel alternant les rôles. La zone d’édition du prompt système est masquée par défaut et peut être ouverte ou refermée depuis la ligne « Prompt système ». L’ancien champ `prompt` reste accepté par la passerelle pour les anciennes intégrations à un tour. DeepSeek-V4-Flash-0731 et les trois modèles Together fournissent les `logprobs` attendues ; la passerelle choisit automatiquement leur format. Qwen 3.8 reçoit en complément `enable_thinking=false`, requis par son gabarit de chat. GPT-5.6 Luna refuse actuellement les `logprobs` et reste donc utilisable sans cet affichage.
 
 Les messages suivent l’ordre chronologique dans une colonne principale de 900 px, également utilisée par le prompt système et le champ de saisie. Le champ arrondi reste fixé au bas de la fenêtre et grandit avec son contenu ; la page réserve automatiquement sa hauteur afin qu’il ne masque pas la conversation.
 
@@ -74,7 +77,7 @@ La syntaxe de l’adresse et son domaine sont contrôlés côté serveur. Les do
 - `index.html` : interface de conversation et prompt système ;
 - `scripts/gestionLLM.js` : état de la conversation, appels, rendu des messages et info-bulles de probabilités ;
 - `php/appelLLM.php` : point d’entrée HTTP authentifié ;
-- `php/llmChat.php` : registre des modèles, validation des conversations et routage Chat Completions ;
+- `php/llmChat.php` : registre des modèles, validation des conversations et routage vers les endpoints fournisseurs ;
 - `php/verifieEmail.php` : validation serveur de l’adresse électronique ;
 - `php/config.example.php` : modèle de configuration sans secret.
 
@@ -86,7 +89,7 @@ Un test réel facultatif vérifie trois tours puis une régénération auprès d
 RUN_LIVE_LLM_TESTS=1 php php/tests/liveConversationSmoke.php
 ```
 
-Il effectue huit appels courts et n’affiche ni les clés ni le texte des réponses.
+Il effectue douze appels courts et n’affiche ni les clés ni le texte des réponses.
 
 ## Sécurité
 
