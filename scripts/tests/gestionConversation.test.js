@@ -53,6 +53,7 @@ const elements = {
     composer_hint: createElement(),
     conversation_limit_notice: createElement({ hidden: true }),
     system_prompt: createElement({ value: "Reste concis." }),
+    model_llm: createElement({ value: "together" }),
     system_prompt_editor: createElement({ hidden: true }),
     system_prompt_toggle: createElement(),
     regenerate_response_button: createElement(),
@@ -163,20 +164,23 @@ context.appel_php_async = function (_file, params, success) {
     sentParams = JSON.parse(params);
     success(JSON.stringify({
         choices: [{
-            text: "Nouvelle réponse",
+            message: { content: "Nouvelle réponse" },
             logprobs: {
-                tokens: ["Nouvelle", " réponse"],
-                token_logprobs: [-0.1, -0.2],
-                top_logprobs: [
-                    { "Nouvelle": -0.1 },
-                    { " réponse": -0.2 }
+                content: [
+                    { token: "Nouvelle", logprob: -0.1, top_logprobs: [
+                        { token: "Nouvelle", logprob: -0.1 },
+                        { token: "Une", logprob: -2.3 }
+                    ] },
+                    { token: " réponse", logprob: -0.2, top_logprobs: [
+                        { token: " réponse", logprob: -0.2 }
+                    ] }
                 ]
             }
         }]
     }));
 };
 context.regenererDerniereReponse();
-assert.equal(sentParams.model, "fireworks_deepseek_v4_flash_0731");
+assert.equal(sentParams.model, "together");
 assert.equal(context.messagesConversation.length, 2);
 assert.equal(context.messagesConversation[0].content, "Question");
 assert.equal(context.messagesConversation[1].content, "Nouvelle réponse");
@@ -185,10 +189,13 @@ assert.match(elements.conversation_messages.innerHTML, /assistant-token-probabil
 assert.match(elements.conversation_messages.innerHTML, /Probabilité : 90,5%/);
 assert.equal(elements.chat_status.textContent, "La réponse a été régénérée.");
 
-context.appel_php_async = function (_file, _params, _success, error) {
+elements.model_llm.value = "fireworks_nemotron_lightning_3p5_30b_a3b";
+context.appel_php_async = function (_file, params, _success, error) {
+    sentParams = JSON.parse(params);
     error(JSON.stringify({ error: { message: "Indisponible" } }), 500);
 };
 context.regenererDerniereReponse();
+assert.equal(sentParams.model, "fireworks_nemotron_lightning_3p5_30b_a3b");
 assert.equal(context.messagesConversation.length, 2);
 assert.equal(context.messagesConversation[1].content, "Nouvelle réponse");
 assert.equal(elements.chat_error.hidden, false);

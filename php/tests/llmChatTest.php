@@ -23,10 +23,10 @@ function expectInvalidArgument(callable $callback, string $message): void
 }
 
 $catalog = getChatModelCatalog();
-expect(count($catalog) === 3, 'Le registre doit exposer exactement trois modèles.');
+expect(count($catalog) === 4, 'Le registre doit exposer exactement quatre choix de modèles.');
 expect(
-    $catalog[MODEL_CHOICE_OPENAI_GPT5_6_LUNA]['model'] === 'gpt-5.6-luna',
-    'Le modèle OpenAI doit être gpt-5.6-luna.'
+    $catalog[MODEL_CHOICE_OPENAI_GPT4_1_MINI]['model'] === 'gpt-4.1-mini',
+    'Le modèle OpenAI doit être gpt-4.1-mini.'
 );
 expect(
     $catalog[MODEL_CHOICE_FIREWORKS_DEEPSEEK_V4_FLASH_0731]['model']
@@ -38,7 +38,18 @@ expect(
         === FIREWORKS_COMPLETIONS_ENDPOINT,
     'Fireworks doit utiliser l’endpoint Completions demandé.'
 );
+expect(
+    $catalog[MODEL_CHOICE_FIREWORKS_NEMOTRON_LIGHTNING_3P5_30B_A3B]['model']
+        === FIREWORKS_MODEL_NEMOTRON_LIGHTNING_3P5_30B_A3B,
+    'Nemotron Lightning doit être disponible dans le registre Fireworks.'
+);
+expect(
+    $catalog[MODEL_CHOICE_FIREWORKS_NEMOTRON_LIGHTNING_3P5_30B_A3B]['endpoint']
+        === FIREWORKS_COMPLETIONS_ENDPOINT,
+    'Nemotron Lightning doit utiliser Fireworks Completions.'
+);
 $supportedTogetherModels = [
+    TOGETHER_MODEL_TERNARY_BONSAI_27B,
     TOGETHER_MODEL_QWEN_3_5_9B,
     TOGETHER_MODEL_QWEN_3_8,
     TOGETHER_MODEL_DEEPSEEK_V4_PRO,
@@ -48,16 +59,20 @@ expect(
     'Le modèle Together configuré doit appartenir au registre pris en charge.'
 );
 expect(
-    $catalog[MODEL_CHOICE_OPENAI_GPT5_6_LUNA]['supports_logprobs'] === false,
-    'gpt-5.6-luna doit signaler l’absence de logprobs.'
+    $catalog[MODEL_CHOICE_OPENAI_GPT4_1_MINI]['supports_logprobs'] === true,
+    'gpt-4.1-mini doit signaler la disponibilité des logprobs.'
 );
 expect(
     $catalog[MODEL_CHOICE_TOGETHER]['supports_logprobs'] === true,
-    'Qwen doit signaler la disponibilité des logprobs.'
+    'Le modèle Together doit signaler la disponibilité des logprobs.'
 );
 expect(
     $catalog[MODEL_CHOICE_FIREWORKS_DEEPSEEK_V4_FLASH_0731]['supports_logprobs'] === true,
     'DeepSeek-V4-Flash-0731 doit signaler la disponibilité des logprobs.'
+);
+expect(
+    $catalog[MODEL_CHOICE_FIREWORKS_NEMOTRON_LIGHTNING_3P5_30B_A3B]['supports_logprobs'] === true,
+    'Nemotron Lightning doit signaler la disponibilité des logprobs.'
 );
 
 $qwen38Profile = getTogetherChatModelProfile(TOGETHER_MODEL_QWEN_3_8);
@@ -84,16 +99,27 @@ expect(
     'DeepSeek V4 Pro doit désactiver le raisonnement pour aligner les logprobs.'
 );
 
+$bonsaiProfile = getTogetherChatModelProfile(TOGETHER_MODEL_TERNARY_BONSAI_27B);
+expect($bonsaiProfile['logprobs'] === true, 'Ternary Bonsai doit demander les logprobs sous forme booléenne.');
+expect(
+    $bonsaiProfile['chat_template_kwargs']['enable_thinking'] === false,
+    'Ternary Bonsai doit désactiver le raisonnement dans son gabarit de chat.'
+);
+expect(
+    $catalog[MODEL_CHOICE_TOGETHER]['model'] === TOGETHER_MODEL_TERNARY_BONSAI_27B,
+    'Ternary Bonsai doit être le modèle Together configuré.'
+);
+
 $defaultRequest = normaliseChatRequest([
     'messages' => [['role' => 'user', 'content' => 'Bonjour']],
 ]);
 expect(
-    $defaultRequest['modelChoice'] === MODEL_CHOICE_FIREWORKS_DEEPSEEK_V4_FLASH_0731,
-    'DeepSeek-V4-Flash-0731 doit être le modèle sélectionné par défaut.'
+    $defaultRequest['modelChoice'] === MODEL_CHOICE_TOGETHER,
+    'Ternary Bonsai doit être le modèle sélectionné par défaut.'
 );
 
 $legacyRequest = normaliseChatRequest([
-    'modele' => MODEL_CHOICE_OPENAI_GPT5_6_LUNA,
+    'modele' => MODEL_CHOICE_OPENAI_GPT4_1_MINI,
     'prompt' => 'Bonjour',
 ]);
 expect(
@@ -134,13 +160,13 @@ expectInvalidArgument(
 );
 
 $openAiPayload = buildModelPayload(
-    $catalog[MODEL_CHOICE_OPENAI_GPT5_6_LUNA],
+    $catalog[MODEL_CHOICE_OPENAI_GPT4_1_MINI],
     'Réponds brièvement.',
     [['role' => 'user', 'content' => 'Bonjour']]
 );
 expect($openAiPayload['messages'][0]['role'] === 'developer', 'OpenAI doit recevoir un message developer.');
-expect(!isset($openAiPayload['logprobs']), 'gpt-5.6-luna ne doit pas demander de logprobs.');
-expect(!isset($openAiPayload['top_logprobs']), 'gpt-5.6-luna ne doit pas demander d’alternatives.');
+expect($openAiPayload['logprobs'] === true, 'gpt-4.1-mini doit demander les logprobs.');
+expect($openAiPayload['top_logprobs'] === REQUESTED_LOGPROBS, 'gpt-4.1-mini doit demander cinq alternatives.');
 expect(!isset($openAiPayload['max_tokens']), 'Aucun plafond applicatif de sortie ne doit être envoyé.');
 expect(!isset($openAiPayload['max_completion_tokens']), 'Aucun plafond applicatif de sortie ne doit être envoyé.');
 
@@ -154,6 +180,18 @@ expect($togetherPayload['messages'][0]['role'] === 'system', 'Together doit rece
 expect($togetherPayload['logprobs'] === 5, 'Together doit demander cinq alternatives.');
 expect($togetherPayload['reasoning']['enabled'] === false, 'Le raisonnement Qwen doit être désactivé.');
 expect(!isset($togetherPayload['max_tokens']), 'Aucun plafond applicatif de sortie ne doit être envoyé.');
+
+$bonsaiPayload = buildModelPayload(
+    $catalog[MODEL_CHOICE_TOGETHER],
+    'Réponds brièvement.',
+    [['role' => 'user', 'content' => 'Bonjour']]
+);
+expect($bonsaiPayload['model'] === TOGETHER_MODEL_TERNARY_BONSAI_27B, 'Le payload doit cibler Ternary Bonsai.');
+expect($bonsaiPayload['logprobs'] === true, 'Ternary Bonsai doit recevoir logprobs=true.');
+expect(
+    $bonsaiPayload['chat_template_kwargs']['enable_thinking'] === false,
+    'Ternary Bonsai doit recevoir enable_thinking=false.'
+);
 
 $qwen38Payload = buildModelPayload(
     array_merge($catalog[MODEL_CHOICE_TOGETHER], $qwen38Profile),
@@ -208,5 +246,24 @@ expect($fireworksPayload['logprobs'] === REQUESTED_LOGPROBS, 'Fireworks doit dem
 expect($fireworksPayload['reasoning_effort'] === 'none', 'Le raisonnement Fireworks doit être désactivé.');
 expect($fireworksPayload['stop'] === ["\n\nUtilisateur :"], 'Fireworks doit arrêter le tour suivant.');
 expect(!isset($fireworksPayload['max_tokens']), 'Aucun plafond applicatif ne doit être envoyé à Fireworks.');
+
+$nemotronRequest = normaliseChatRequest([
+    'model' => MODEL_CHOICE_FIREWORKS_NEMOTRON_LIGHTNING_3P5_30B_A3B,
+    'messages' => [['role' => 'user', 'content' => 'Bonjour']],
+]);
+expect(
+    $nemotronRequest['modelChoice'] === MODEL_CHOICE_FIREWORKS_NEMOTRON_LIGHTNING_3P5_30B_A3B,
+    'Nemotron Lightning doit être sélectionnable par la passerelle.'
+);
+$nemotronPayload = buildModelPayload(
+    $catalog[$nemotronRequest['modelChoice']],
+    'Réponds brièvement.',
+    $nemotronRequest['messages']
+);
+expect(
+    $nemotronPayload['model'] === FIREWORKS_MODEL_NEMOTRON_LIGHTNING_3P5_30B_A3B,
+    'Le payload Fireworks doit cibler Nemotron Lightning.'
+);
+expect($nemotronPayload['logprobs'] === REQUESTED_LOGPROBS, 'Nemotron Lightning doit demander cinq logprobs.');
 
 echo "OK - llmChatTest\n";

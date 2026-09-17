@@ -2,18 +2,23 @@
 
 declare(strict_types=1);
 
-const MODEL_CHOICE_OPENAI_GPT5_6_LUNA = 'openai_gpt5_6_luna';
+const MODEL_CHOICE_OPENAI_GPT4_1_MINI = 'openai_gpt4_1_mini';
 const MODEL_CHOICE_TOGETHER = 'together';
 const MODEL_CHOICE_FIREWORKS_DEEPSEEK_V4_FLASH_0731 = 'fireworks_deepseek_v4_flash_0731';
-const DEFAULT_MODEL_CHOICE = MODEL_CHOICE_FIREWORKS_DEEPSEEK_V4_FLASH_0731;
+const MODEL_CHOICE_FIREWORKS_NEMOTRON_LIGHTNING_3P5_30B_A3B =
+    'fireworks_nemotron_lightning_3p5_30b_a3b';
+const DEFAULT_MODEL_CHOICE = MODEL_CHOICE_TOGETHER;
+const TOGETHER_MODEL_TERNARY_BONSAI_27B = 'Prism-ML/Ternary-Bonsai-27B';
 const TOGETHER_MODEL_QWEN_3_5_9B = 'Qwen/Qwen3.5-9B';
 const TOGETHER_MODEL_QWEN_3_8 = 'Qwen/Qwen3.8-2.4T-A95B';
 const TOGETHER_MODEL_DEEPSEEK_V4_PRO = 'deepseek-ai/DeepSeek-V4-Pro';
 const FIREWORKS_MODEL_DEEPSEEK_V4_FLASH_0731 =
     'accounts/fireworks/models/deepseek-v4-flash-0731';
+const FIREWORKS_MODEL_NEMOTRON_LIGHTNING_3P5_30B_A3B =
+    'accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b';
 
 // Pour tester un autre modèle Together, modifiez uniquement cette constante.
-const TOGETHER_CHAT_MODEL = TOGETHER_MODEL_QWEN_3_5_9B;
+const TOGETHER_CHAT_MODEL = TOGETHER_MODEL_TERNARY_BONSAI_27B;
 
 const OPENAI_CHAT_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 const TOGETHER_CHAT_ENDPOINT = 'https://api.together.ai/v1/chat/completions';
@@ -31,6 +36,12 @@ const REQUESTED_LOGPROBS = 5;
 function getTogetherChatModelProfile(string $model): array
 {
     $profiles = [
+        TOGETHER_MODEL_TERNARY_BONSAI_27B => [
+            'model' => TOGETHER_MODEL_TERNARY_BONSAI_27B,
+            'logprobs' => true,
+            'reasoning' => ['enabled' => false],
+            'chat_template_kwargs' => ['enable_thinking' => false],
+        ],
         TOGETHER_MODEL_QWEN_3_5_9B => [
             'model' => TOGETHER_MODEL_QWEN_3_5_9B,
             'logprobs' => REQUESTED_LOGPROBS,
@@ -67,11 +78,11 @@ function getChatModelCatalog(): array
     $togetherProfile = getTogetherChatModelProfile(TOGETHER_CHAT_MODEL);
 
     return [
-        MODEL_CHOICE_OPENAI_GPT5_6_LUNA => [
+        MODEL_CHOICE_OPENAI_GPT4_1_MINI => [
             'provider' => 'openai',
             'provider_name' => 'OpenAI',
-            'model' => 'gpt-5.6-luna',
-            'supports_logprobs' => false,
+            'model' => 'gpt-4.1-mini',
+            'supports_logprobs' => true,
             'endpoint' => OPENAI_CHAT_ENDPOINT,
             'environment_key' => 'OPENAI_API_KEY',
             'config_key' => 'openai_api_key',
@@ -92,6 +103,15 @@ function getChatModelCatalog(): array
             'provider' => 'fireworks',
             'provider_name' => 'Fireworks AI',
             'model' => FIREWORKS_MODEL_DEEPSEEK_V4_FLASH_0731,
+            'supports_logprobs' => true,
+            'endpoint' => FIREWORKS_COMPLETIONS_ENDPOINT,
+            'environment_key' => 'FIREWORKS_API_KEY',
+            'config_key' => 'fireworks_api_key',
+        ],
+        MODEL_CHOICE_FIREWORKS_NEMOTRON_LIGHTNING_3P5_30B_A3B => [
+            'provider' => 'fireworks',
+            'provider_name' => 'Fireworks AI',
+            'model' => FIREWORKS_MODEL_NEMOTRON_LIGHTNING_3P5_30B_A3B,
             'supports_logprobs' => true,
             'endpoint' => FIREWORKS_COMPLETIONS_ENDPOINT,
             'environment_key' => 'FIREWORKS_API_KEY',
@@ -289,7 +309,8 @@ function buildModelPayload(array $model, string $systemPrompt, array $messages):
     ];
 
     if ($model['provider'] === 'openai') {
-        // GPT-5.6 Luna refuse actuellement les logprobs sur Chat Completions.
+        $payload['logprobs'] = true;
+        $payload['top_logprobs'] = REQUESTED_LOGPROBS;
         return $payload;
     }
 

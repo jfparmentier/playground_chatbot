@@ -65,6 +65,15 @@
 					<header class="page-prompt-header">
 						<div>
 							<h5>Chatbot de démonstration</h5>
+							<div class="chat-model-control">
+								<label for="model_llm">Modèle</label>
+								<select id="model_llm" name="model_llm">
+									<option value="together" selected>Ternary Bonsai 27B — Together</option>
+									<option value="fireworks_nemotron_lightning_3p5_30b_a3b">Nemotron Lightning 3.5 30B — Fireworks</option>
+									<option value="fireworks_deepseek_v4_flash_0731">DeepSeek V4 Flash — Fireworks</option>
+									<option value="openai_gpt4_1_mini">GPT-4.1 mini — OpenAI</option>
+								</select>
+							</div>
 						</div>
 
 						<button type="button" class="reset-chat-button" id="reset_chat_button" aria-label="Effacer la conversation et le prompt système" title="Tout réinitialiser" onclick="reinitialiserChatComplet();">
@@ -123,7 +132,7 @@
 		<!-- Pied de page -->		
 		<div class="vue-fixe">
 			<!-- <hr>
-			<p><em>Modèle : DeepSeek-V4-Flash-0731 via Fireworks AI</em></p> -->
+			<p><em>Modèle : Ternary Bonsai 27B via Together AI</em></p> -->
 		</div>
 
 	</div>

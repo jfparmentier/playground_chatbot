@@ -79,6 +79,23 @@
   margin-right: 4rem;
 }
 
+.chat-model-control {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.chat-model-control label,
+.chat-model-control select {
+  margin-bottom: 0;
+}
+
+.chat-model-control select {
+  max-width: 100%;
+}
+
 .model-settings {
   position: absolute;
   top: 0;

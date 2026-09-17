@@ -210,7 +210,7 @@ function alternativesToArray(alternatives) {
 
 /**
  * Normalise les structures de logprobs rencontrées dans :
- * - l'ancien endpoint OpenAI /v1/completions ;
+ * - les endpoints OpenAI /v1/completions et /v1/chat/completions ;
  * - Together AI /v1/chat/completions ;
  * - les réponses modernes de type chat, à titre de compatibilité défensive.
  */
@@ -1069,7 +1069,7 @@ function lanceGeneration(contexte) {
     var input = document.getElementById("user_message");
     var modelSelect = document.getElementById("model_llm");
     var systemPrompt = document.getElementById("system_prompt");
-    var modele = modelSelect ? modelSelect.value : "fireworks_deepseek_v4_flash_0731";
+    var modele = modelSelect ? modelSelect.value : "together";
     var paramsPhp = {
         model: modele,
         systemPrompt: systemPrompt ? systemPrompt.value : "",

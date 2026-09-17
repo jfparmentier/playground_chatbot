@@ -4,15 +4,17 @@ Cette application évolue vers un chatbot pédagogique limité à trois messages
 
 ## Modèles disponibles
 
-La passerelle prend en charge DeepSeek-V4-Flash-0731, GPT-5.6 Luna et trois modèles Together :
+La passerelle propose GPT-4.1 mini, DeepSeek-V4-Flash-0731, Nemotron Lightning 3.5 30B et un modèle Together sélectionnable parmi quatre profils :
 
-- **DeepSeek-V4-Flash-0731**, appelé via Fireworks AI et utilisé par défaut ;
-- **GPT-5.6 Luna**, développé et appelé par OpenAI ;
-- **Qwen3.5-9B**, modèle Together configuré ;
+- **GPT-4.1 mini**, appelé via OpenAI avec les probabilités des tokens ;
+- **DeepSeek-V4-Flash-0731**, appelé via Fireworks AI ;
+- **Nemotron Lightning 3.5 30B A3B**, appelé via Fireworks AI ;
+- **Ternary Bonsai 27B**, modèle Together utilisé par défaut ;
+- **Qwen3.5-9B** ;
 - **Qwen3.8-2.4T-A95B** ;
 - **DeepSeek V4 Pro**.
 
-L’interface utilise DeepSeek-V4-Flash-0731 avec l’endpoint Fireworks `https://api.fireworks.ai/inference/v1/completions`. Pour tester un autre modèle Together via le choix `together`, remplacez la valeur de `TOGETHER_CHAT_MODEL` dans `php/llmChat.php` par `TOGETHER_MODEL_QWEN_3_8` ou `TOGETHER_MODEL_DEEPSEEK_V4_PRO`. L’icône de rafraîchissement située en haut à droite efface la conversation, le message en cours de saisie et le prompt système.
+L’interface sélectionne Ternary Bonsai 27B par défaut avec l’endpoint Together `https://api.together.ai/v1/chat/completions`. Le menu « Modèle » permet de choisir Nemotron Lightning, DeepSeek V4 Flash ou GPT-4.1 mini. Pour tester un autre modèle Together via le choix `together`, remplacez la valeur de `TOGETHER_CHAT_MODEL` dans `php/llmChat.php` par `TOGETHER_MODEL_QWEN_3_5_9B`, `TOGETHER_MODEL_QWEN_3_8` ou `TOGETHER_MODEL_DEEPSEEK_V4_PRO`. L’icône de rafraîchissement située en haut à droite efface la conversation, le message en cours de saisie et le prompt système.
 
 ## Configuration
 
@@ -47,7 +49,7 @@ Les identifiants de modèles et les endpoints sont fixés dans le registre serve
 
 La passerelle accepte un `systemPrompt`, un identifiant `model` ou `modele`, et un tableau `messages`. Les rôles `user` et `assistant` doivent alterner, la requête doit se terminer par `user` et le serveur refuse tout quatrième message utilisateur. Aucun petit plafond de génération n’est ajouté par l’application : seules les limites techniques du fournisseur demeurent.
 
-L’interface transmet le prompt système et l’historique complet à chaque appel. Pour Fireworks Completions, la passerelle les sérialise dans un prompt textuel alternant les rôles. La zone d’édition du prompt système est masquée par défaut et peut être ouverte ou refermée depuis la ligne « Prompt système ». L’ancien champ `prompt` reste accepté par la passerelle pour les anciennes intégrations à un tour. DeepSeek-V4-Flash-0731 et les trois modèles Together fournissent les `logprobs` attendues ; la passerelle choisit automatiquement leur format. Qwen 3.8 reçoit en complément `enable_thinking=false`, requis par son gabarit de chat. GPT-5.6 Luna refuse actuellement les `logprobs` et reste donc utilisable sans cet affichage.
+L’interface transmet le prompt système et l’historique complet à chaque appel. Pour Fireworks Completions, la passerelle les sérialise dans un prompt textuel alternant les rôles. La zone d’édition du prompt système est masquée par défaut et peut être ouverte ou refermée depuis la ligne « Prompt système ». L’ancien champ `prompt` reste accepté par la passerelle pour les anciennes intégrations à un tour. GPT-4.1 mini demande `logprobs=true` et `top_logprobs=5` ; la passerelle sait lire le format OpenAI, ainsi que ceux des deux modèles Fireworks et des modèles Together. Ternary Bonsai et Qwen 3.8 reçoivent `logprobs=true` et `enable_thinking=false`, requis pour obtenir une réponse visible avec leurs gabarits de chat.
 
 Les messages suivent l’ordre chronologique dans une colonne principale de 900 px, également utilisée par le prompt système et le champ de saisie. Le champ arrondi reste fixé au bas de la fenêtre et grandit avec son contenu ; la page réserve automatiquement sa hauteur afin qu’il ne masque pas la conversation.
 
@@ -89,7 +91,7 @@ Un test réel facultatif vérifie trois tours puis une régénération auprès d
 RUN_LIVE_LLM_TESTS=1 php php/tests/liveConversationSmoke.php
 ```
 
-Il effectue douze appels courts et n’affiche ni les clés ni le texte des réponses.
+Il effectue seize appels courts et n’affiche ni les clés ni le texte des réponses.
 
 ## Sécurité
 
