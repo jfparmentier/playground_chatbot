@@ -16,11 +16,9 @@ return [
     // OpenAI : gpt-4.1-mini via Chat Completions.
     'openai_api_key' => 'COLLEZ_ICI_VOTRE_CLE_OPENAI',
 
-    // Saisissez un ou plusieurs domaines sans adresse utilisateur. Les formes
-    // "ipsa.fr" et "@ipsa.fr" sont acceptées. Les sous-domaines ne sont pas
-    // autorisés implicitement : ajoutez-les explicitement dans ce tableau.
+    // Saisissez un ou plusieurs domaines sans adresse utilisateur.
     'email_domains' => [
-        'ipsa.fr',
-        'etudiant.ipsa.fr',
+        'univ.fr',
+        'etudiant.univ.fr',
     ],
 ];
